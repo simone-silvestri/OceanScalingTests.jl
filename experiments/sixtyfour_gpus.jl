@@ -1,6 +1,7 @@
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
+using MPI
 
 MPI.Init()
 
