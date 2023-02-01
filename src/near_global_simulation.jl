@@ -3,12 +3,6 @@ using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Distributed: partition_global_array
 
-MPI.Init()
-
-comm   = MPI.COMM_WORLD
-rank   = MPI.Comm_rank(comm)
-Nranks = MPI.Comm_size(comm)
-
 function run_scaling_test(resolution, ranks, bathymetry, Δt, stop_iteration)
 
     child_arch = GPU()

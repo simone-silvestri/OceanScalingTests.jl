@@ -13,7 +13,6 @@
 #SBATCH --partition=reservation7 
 #SBATCH --qos=reservation7 
 
-
 module purge all
 module add spack
 module add cuda/10.1

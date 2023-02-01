@@ -17,3 +17,5 @@ bathymetry = jldopen("../data/bathymetry_twelve.jld2")["bathymetry"]
 stop_iteration = 5000
 
 OceanScalingTests.run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
+
+MPI.finalize()
