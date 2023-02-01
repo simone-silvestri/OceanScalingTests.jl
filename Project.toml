@@ -1,0 +1,12 @@
+name = "OceanScalingTests"
+uuid = "c0b7a3cb-3271-4ec1-a3cd-f45182033f21"
+authors = ["Simone Silvestri <silvestri.simone0@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
+Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
