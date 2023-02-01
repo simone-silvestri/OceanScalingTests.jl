@@ -31,7 +31,7 @@ function run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
                                                   precompute_metrics = true)
 
     nx, ny, nz = size(underlying_grid)
-    bathymetry = bathymetry[1 + nx * rank : (rank + 1) * nx, :]
+    bathymetry = bathymetry[1 + nx * ranks[1] : (ranks[1] + 1) * nx, :]
 
     grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
 
