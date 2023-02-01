@@ -19,13 +19,15 @@ function run_scaling_test(resolution, ranks, bathymetry, Δt, stop_iteration)
 
     N = (Nx, Ny, Nz)
 
+    z_faces = linear_z_faces(Nz, Depth)
+
     # A spherical domain
     @show underlying_grid = LatitudeLongitudeGrid(arch,
                                                   size = (Nx, Ny, Nz),
                                                   longitude = (-180, 180),
                                                   latitude = latitude,
                                                   halo = (5, 5, 5),
-                                                  z = linear_z_faces,
+                                                  z = z_faces,
                                                   precompute_metrics = true)
 
     nx, ny, nz = size(underlying_grid)
