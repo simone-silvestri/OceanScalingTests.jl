@@ -9,6 +9,10 @@
 #SBATCH --time 06:00:00
 #SBATCH -e error_four.txt
 #SBATCH -o output_four.txt
+#SBATCH --reservation=gpu-aware-mpi-testing
+#SBATCH --partition=reservation7 
+#SBATCH --qos=reservation7 
+
 
 module purge all
 module add spack
