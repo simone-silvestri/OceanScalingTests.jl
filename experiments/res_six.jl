@@ -21,6 +21,6 @@ bathymetry = nothing # jldopen("/home/ssilvest/development/OceanScalingTests.jl/
 Δt = 5minutes
 stop_iteration = 5000
 
-OceanScalingTests.run_scaling_test!(resolution, ranks, rank, Δt, stop_iteration; bathymetry)
+OceanScalingTests.run_scaling_test!(resolution, ranks, Δt, stop_iteration; bathymetry)
 
 MPI.finalize()
