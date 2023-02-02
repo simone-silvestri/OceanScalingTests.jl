@@ -66,12 +66,12 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
     coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
 
     model = HydrostaticFreeSurfaceModel(; grid,
-                                        free_surface,
-                                        momentum_advection, tracer_advection,
-                                        coriolis,
-                                        buoyancy,
-                                        tracers = (:T, :S),
-                                        closure)
+                                          free_surface,
+                                          momentum_advection, tracer_advection,
+                                          coriolis,
+                                          buoyancy,
+                                          tracers = (:T, :S),
+                                          closure)
 
     #####
     ##### Initial condition:
