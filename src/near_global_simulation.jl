@@ -3,22 +3,21 @@ using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Distributed: partition_global_array
 
-function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iteration;
-                           no_ibg = false)
+function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
+                           no_ibg = false,
+                           bathymetry = nothing)
 
     child_arch = GPU()
 
     topo = (Periodic, Bounded, Bounded)
     arch = MultiArch(child_arch; topology = topo, ranks)
 
-    latitude = (-75, 75)
+    latitude = (-80, 80)
 
     # 0.25 degree resolution
     Nx = 360 * resolution
-    Ny = 150 * resolution
+    Ny = 160 * resolution
     Nz = 250
-
-    N = (Nx, Ny, Nz)
 
     z_faces = linear_z_faces(Nz, Depth)
 
@@ -33,10 +32,11 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
                                                   z = z_faces,
                                                   precompute_metrics = true)
 
-    nx, ny, nz = size(underlying_grid)
-    bathymetry = bathymetry[1 + nx * (rx - 1) : rx * nx, 1 + ny * (ry - 1) : ry * ny]
-
-    grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+    if !isnothing(bathymetry)
+        nx, ny, nz = size(underlying_grid)
+        bathymetry = bathymetry[1 + nx * (rx - 1) : rx * nx, 1 + ny * (ry - 1) : ry * ny]
+        grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+    end
 
     #####
     ##### Physics and model setup
