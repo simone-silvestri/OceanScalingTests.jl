@@ -107,7 +107,7 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
     # Let's goo!
     @show "Running with Δt = $(prettytime(simulation.Δt))"
 
-    run!(simulation, pickup = pickup_file)
+    run!(simulation)
 
     @show """
         Simulation took $(prettytime(simulation.run_wall_time))
