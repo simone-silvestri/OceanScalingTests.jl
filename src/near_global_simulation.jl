@@ -24,18 +24,18 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
     rx, ry, _ = arch.local_index
 
     # A spherical domain
-    @show underlying_grid = LatitudeLongitudeGrid(arch,
-                                                  size = (Nx, Ny, Nz),
-                                                  longitude = (-180, 180),
-                                                  latitude = latitude,
-                                                  halo = (5, 5, 5),
-                                                  z = z_faces,
-                                                  precompute_metrics = true)
+    @show grid = LatitudeLongitudeGrid(arch,
+                                       size = (Nx, Ny, Nz),
+                                       longitude = (-180, 180),
+                                       latitude = latitude,
+                                       halo = (5, 5, 5),
+                                       z = z_faces,
+                                       precompute_metrics = true)
 
     if !isnothing(bathymetry)
-        nx, ny, nz = size(underlying_grid)
+        nx, ny, nz = size(grid)
         bathymetry = bathymetry[1 + nx * (rx - 1) : rx * nx, 1 + ny * (ry - 1) : ry * ny]
-        grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
+        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
     end
 
     #####
