@@ -13,11 +13,11 @@ Nranks = MPI.Comm_size(comm)
 ranks      = (Nranks, 1, 1)
 resolution = 12
 
-bathymetry = jldopen("../data/bathymetry_twelve.jld2")["bathymetry"]
+bathymetry = jldopen("/home/ssilvest/development/OceanScalingTests.jl/data/bathymetry_twelve.jld2")["bathymetry"]
 
 Δt = 2.5minutes
 stop_iteration = 5000
 
-OceanScalingTests.run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
+OceanScalingTests.run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iteration)
 
 MPI.finalize()

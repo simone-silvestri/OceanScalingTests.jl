@@ -3,7 +3,7 @@ using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Distributed: partition_global_array
 
-function run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
+function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iteration)
 
     child_arch = GPU()
 
@@ -21,6 +21,8 @@ function run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
 
     z_faces = linear_z_faces(Nz, Depth)
 
+    @show N, ranks[1], rank
+
     # A spherical domain
     @show underlying_grid = LatitudeLongitudeGrid(arch,
                                                   size = (Nx, Ny, Nz),
@@ -31,7 +33,7 @@ function run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
                                                   precompute_metrics = true)
 
     nx, ny, nz = size(underlying_grid)
-    bathymetry = bathymetry[1 + nx * ranks[1] : (ranks[1] + 1) * nx, :]
+    bathymetry = bathymetry[1 + nx * rank : (rank + 1) * nx, :]
 
     grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
 
@@ -45,10 +47,10 @@ function run_scaling_test!(resolution, ranks, bathymetry, Δt, stop_iteration)
     convective_adjustment  = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.2, convective_νz = 0.2)
     vertical_diffusivity   = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), ν=νz, κ=κz)
         
-    tracer_advection   = WENO(underlying_grid)
+    tracer_advection   = WENO()
     momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
                                          divergence_scheme = WENO(), 
-                                         vertical_scheme   = WENO(underlying_grid)) 
+                                         vertical_scheme   = WENO()) 
 
     #####
 
