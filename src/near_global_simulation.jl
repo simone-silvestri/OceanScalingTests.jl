@@ -92,7 +92,7 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
 
         u = sim.model.velocities.u
 
-        @info @sprintf("Time: % 12s, iteration: %d, max(|u|): %.2e ms⁻¹, wall time: %s", 
+        @show @sprintf("Time: % 12s, iteration: %d, max(|u|): %.2e ms⁻¹, wall time: %s", 
                         prettytime(sim.model.clock.time),
                         sim.model.clock.iteration, maximum(abs, u), 
                         prettytime(wall_time))
@@ -105,11 +105,11 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
     # Let's goo!
-    @info "Running with Δt = $(prettytime(simulation.Δt))"
+    @show "Running with Δt = $(prettytime(simulation.Δt))"
 
     run!(simulation, pickup = pickup_file)
 
-    @info """
+    @show """
         Simulation took $(prettytime(simulation.run_wall_time))
         Free surface: $(typeof(model.free_surface).name.wrapper)
         Time step: $(prettytime(Δt))
