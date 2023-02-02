@@ -15,9 +15,11 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
     latitude = (-80, 80)
 
     # 0.25 degree resolution
-    Nx = 360 * resolution
-    Ny = 160 * resolution
+    Nx = Int(360 * resolution)
+    Ny = Int(160 * resolution)
     Nz = 250
+
+    @show Ny / arch.ranks[2]
 
     z_faces = linear_z_faces(Nz, Depth)
 
