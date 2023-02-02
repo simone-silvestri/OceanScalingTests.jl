@@ -13,7 +13,7 @@ Nranks = MPI.Comm_size(comm)
 ranks      = (Nranks, 1, 1)
 resolution = 6
 
-bathymetry = jldopen("/home/ssilvest/development/OceanScalingTests.jl/data/bathymetry_sixth.jld2")["bathymetry"]
+bathymetry = jldopen("/home/ssilvest/development/OceanScalingTests.jl/data/bathymetry_six.jld2")["bathymetry"]
 
 Δt = 5minutes
 stop_iteration = 5000
