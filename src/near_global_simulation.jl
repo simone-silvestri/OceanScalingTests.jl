@@ -57,7 +57,10 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
 
     CFL            = 0.8
     wave_speed     = sqrt(g_Earth * grid.Lz)
-    Δg             = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
+    Δgr            = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
+
+    Δg = MPI.Allreduce(Δgr, min, arch.communicator)
+
     @show substeps = Int(ceil(2 * Δt / (CFL / wave_speed * Δg)))
 
     free_surface = SplitExplicitFreeSurface(; substeps)
