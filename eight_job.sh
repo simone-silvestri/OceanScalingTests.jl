@@ -7,8 +7,8 @@
 #SBATCH --threads-per-core=1
 #SBATCH --mem=1TB
 #SBATCH --time 06:00:00
-#SBATCH -e error_four.txt
-#SBATCH -o output_four.txt
+#SBATCH -e error_eight.txt
+#SBATCH -o output_eight.txt
 #SBATCH --reservation=gpu-aware-mpi-testing
 #SBATCH --partition=reservation7 
 #SBATCH --qos=reservation7 
@@ -24,4 +24,4 @@ export OMPI_MCA_btl_openib_allow_ib=true
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
-srun -n 4 /nobackup/users/ssilvest/julia-src/julia --check-bounds=no --project experiments/four_gpus.jl
+srun -n 4 /nobackup/users/ssilvest/julia-src/julia --check-bounds=no --project experiments/res_eight.jl

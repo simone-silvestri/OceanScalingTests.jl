@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-task=1
@@ -7,8 +7,8 @@
 #SBATCH --threads-per-core=1
 #SBATCH --mem=1TB
 #SBATCH --time 06:00:00
-#SBATCH -e error_sixteen.txt
-#SBATCH -o output_sixteen.txt
+#SBATCH -e error_six.txt
+#SBATCH -o output_six.txt
 #SBATCH --reservation=gpu-aware-mpi-testing
 #SBATCH --partition=reservation7 
 #SBATCH --qos=reservation7 
@@ -24,4 +24,4 @@ export OMPI_MCA_btl_openib_allow_ib=true
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
-srun -n 16 /nobackup/users/ssilvest/julia-src/julia --check-bounds=no --project experiments/res_sixteen.jl
+srun -n 4 /nobackup/users/ssilvest/julia-src/julia --check-bounds=no --project experiments/res_six.jl
