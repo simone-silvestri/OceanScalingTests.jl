@@ -10,7 +10,9 @@ comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
 Nranks = MPI.Comm_size(comm)
 
-ranks      = (Nranks, 1, 1)
+Rx = Ry = Int(sqrt(Nranks))
+
+ranks      = (Rx, Ry, 1)
 resolution = 8
 
 bathymetry = jldopen("/home/ssilvest/development/OceanScalingTests.jl/data/bathymetry_eight.jld2")["bathymetry"]
