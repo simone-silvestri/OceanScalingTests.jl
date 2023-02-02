@@ -3,7 +3,8 @@ using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Distributed: partition_global_array
 
-function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iteration)
+function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iteration;
+                           no_ibg = false)
 
     child_arch = GPU()
 
@@ -71,7 +72,8 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
                                           coriolis,
                                           buoyancy,
                                           tracers = (:T, :S),
-                                          closure)
+                                          closure,
+                                          calculate_only_active_cells_tendencies = no_ibg)
 
     #####
     ##### Initial condition:
