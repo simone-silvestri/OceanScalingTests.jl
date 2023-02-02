@@ -21,7 +21,7 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
 
     z_faces = linear_z_faces(Nz, Depth)
 
-    @show N, ranks[1], rank
+    rx, ry, _ = arch.local_index
 
     # A spherical domain
     @show underlying_grid = LatitudeLongitudeGrid(arch,
@@ -33,7 +33,7 @@ function run_scaling_test!(resolution, ranks, rank, bathymetry, Δt, stop_iterat
                                                   precompute_metrics = true)
 
     nx, ny, nz = size(underlying_grid)
-    bathymetry = bathymetry[1 + nx * rank : (rank + 1) * nx, :]
+    bathymetry = bathymetry[1 + nx * (rx - 1) : rx * nx, 1 + ny * (ry - 1) : ry * ny]
 
     grid = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(bathymetry))
 
