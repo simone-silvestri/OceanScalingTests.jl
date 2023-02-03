@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --gres=gpu:4
 #SBATCH --cpus-per-task=1
@@ -7,8 +6,6 @@
 #SBATCH --threads-per-core=1
 #SBATCH --mem=1TB
 #SBATCH --time 06:00:00
-#SBATCH -e error_eight.txt
-#SBATCH -o output_eight.txt
 #SBATCH --reservation=gpu-aware-mpi-testing
 #SBATCH --partition=reservation7 
 #SBATCH --qos=reservation7 
@@ -22,6 +19,13 @@ export OMPI_MCA_pml=^ucx
 export OMPI_MCA_osc=^ucx
 export OMPI_MCA_btl_openib_allow_ib=true
 
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
 
-srun -n 4 /nobackup/users/ssilvest/julia-src/julia --check-bounds=no --project experiments/res_eight.jl
+cat > launch.sh << EoF_s
+#! /bin/sh
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+exec \$*
+EoF_s
+chmod +x launch.sh
+
+srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/res.jl ${RESOLUTION:=3}
