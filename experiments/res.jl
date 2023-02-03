@@ -15,16 +15,15 @@ Rx = 1
 
 ranks      = (Rx, Ry, 1)
 resolution = parse(Int, get(ENV, "RESOLUTION", "3"))
+experiment = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
 
-bathymetry = nothing # jldopen("/home/ssilvest/development/OceanScalingTests.jl/data/bathymetry_eight.jld2")["bathymetry"]
-
-Δt = 3.5minutes
+Δt = 5minutes * (3 / resolution)
 stop_iteration = 5000
 
 if rank == 0
-    @info "Scaling test" ranks resolution Δt stop_iteration
+    @info "Scaling test" ranks resolution Δt stop_iteration experiment
 end
 
-OceanScalingTests.run_scaling_test!(resolution, ranks, Δt, stop_iteration; bathymetry)
+OceanScalingTests.run_scaling_test!(resolution, ranks, Δt, stop_iteration; experiment)
 
-MPI.finalize()
+MPI.Finalize()

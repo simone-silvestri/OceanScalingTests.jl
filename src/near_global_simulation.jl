@@ -8,7 +8,6 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                            Depth = 3kilometers,
                            no_ibg = false,
                            experiment = :Quiescent, 
-                           bathymetry = double_drake_bathymetry,
                            latitude = (-80, 80))
 
     child_arch = GPU()
@@ -38,12 +37,9 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                                        z = z_faces,
                                        precompute_metrics = true)
 
-    if bathymetry isa AbstractArray
-        nx, ny, nz = size(grid)
-        bathymetry = bathymetry[1 + nx * (rx - 1) : rx * nx, 1 + ny * (ry - 1) : ry * ny]
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
-    elseif bathymetry isa Function
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
+
+    if experiment == :DoubleDrake
+        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(double_drake_bathymetry))
     end
 
     #####
