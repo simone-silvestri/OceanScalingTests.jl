@@ -30,7 +30,7 @@ function set_boundary_conditions(::Val{:DoubleDrake})
     T_top_bc = FluxBoundaryCondition(T_relaxation,          discrete_form=true, parameters=30days)
 
     u_bot_bc = FluxBoundaryCondition(u_bottom_drag, discrete_form=true, parameters = (; μ = 0.1))
-    v_bot_bc = FluxBoundaryCondition(u_bottom_drag, discrete_form=true, parameters = (; μ = 0.1))
+    v_bot_bc = FluxBoundaryCondition(v_bottom_drag, discrete_form=true, parameters = (; μ = 0.1))
 
     T_bcs = FieldBoundaryConditions(top=T_top_bc)
     S_bcs = FieldBoundaryConditions(top=S_top_bc)
