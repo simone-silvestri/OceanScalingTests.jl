@@ -1,11 +1,14 @@
 using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
+using Oceananigans.Units
 using Oceananigans.Distributed: partition_global_array
 
 function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
+                           Depth = 3kilometers,
                            no_ibg = false,
-                           bathymetry = nothing,
+                           experiment = :Quiescent, 
+                           bathymetry = double_drake_bathymetry,
                            latitude = (-80, 80))
 
     child_arch = GPU()
@@ -35,9 +38,11 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                                        z = z_faces,
                                        precompute_metrics = true)
 
-    if !isnothing(bathymetry)
+    if bathymetry isa AbstractArray
         nx, ny, nz = size(grid)
         bathymetry = bathymetry[1 + nx * (rx - 1) : rx * nx, 1 + ny * (ry - 1) : ry * ny]
+        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
+    elseif bathymetry isa Function
         grid = ImmersedBoundaryGrid(grid, GridFittedBottom(bathymetry))
     end
 
@@ -57,7 +62,6 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                                          vertical_scheme   = WENO()) 
 
     #####
-
     CFL            = 0.8
     wave_speed     = sqrt(g_Earth * grid.Lz)
     Δgr            = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
@@ -72,12 +76,15 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
     closure      = (vertical_diffusivity, convective_adjustment)
     coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
 
+    boundary_conditions = set_boundary_conditions(Val(experiment))
+
     model = HydrostaticFreeSurfaceModel(; grid,
                                           free_surface,
                                           momentum_advection, tracer_advection,
                                           coriolis,
                                           buoyancy,
                                           tracers = (:T, :S),
+                                          boundary_conditions,
                                           closure,
                                           calculate_only_active_cells_tendencies = no_ibg)
 
@@ -85,6 +92,7 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
     ##### Initial condition:
     #####
 
+    initialize_model!(model, Val(experiment))
     @info "model initialized"
 
     #####

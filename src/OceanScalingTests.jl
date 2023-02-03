@@ -18,7 +18,8 @@ using Oceananigans.Operators: Δzᵃᵃᶜ
 using Oceananigans: prognostic_fields
 using MPI
 
-include("vertical_faces.jl")
+include("bathymetry_and_forcings.jl")
+include("boundary_conditions.jl")
 include("near_global_simulation.jl")
 
 end # module OceanScalingTests
