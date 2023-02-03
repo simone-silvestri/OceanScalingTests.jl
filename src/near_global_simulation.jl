@@ -5,18 +5,19 @@ using Oceananigans.Distributed: partition_global_array
 
 function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                            no_ibg = false,
-                           bathymetry = nothing)
+                           bathymetry = nothing,
+                           latitude = (-80, 80))
 
     child_arch = GPU()
 
     topo = (Periodic, Bounded, Bounded)
     arch = MultiArch(child_arch; topology = topo, ranks)
 
-    latitude = (-80, 80)
+    Lφ = latitude[2] - latitude[1]
 
     # 0.25 degree resolution
     Nx = Int(360 * resolution)
-    Ny = Int(160 * resolution)
+    Ny = Int(Lφ * resolution)
     Nz = 250
 
     @show Ny / arch.ranks[2]
