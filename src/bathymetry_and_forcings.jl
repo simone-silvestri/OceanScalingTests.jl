@@ -30,7 +30,7 @@ end
 
     coeff = A \ b
 
-    return coeff[1] * x^3 + coeff[2] * x^2 + coeff[3] * x + coeff[4]
+    return tuple(coeff...)
 end
 
 @inline function wind_stress_coefficients(south_north_limit)
