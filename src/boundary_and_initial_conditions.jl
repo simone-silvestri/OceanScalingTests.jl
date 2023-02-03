@@ -10,7 +10,7 @@ function initialize_model!(model, ::Val{:DoubleDrake})
     set!(model, T = init_temperature, S = 35.0)
 end
 
-function boundary_conditions(::Val{:Quiescent})
+function set_boundary_conditions(::Val{:Quiescent})
 
     u_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
     v_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
@@ -20,7 +20,7 @@ function boundary_conditions(::Val{:Quiescent})
     return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
-function boundary_conditions(::Val{:DoubleDrake})
+function set_boundary_conditions(::Val{:DoubleDrake})
 
     u_coeffs = wind_stress_coefficients(80.0)
     S_coeffs = salinity_flux_coefficients(80.0, 35.0)
