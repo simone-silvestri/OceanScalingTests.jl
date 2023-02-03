@@ -2,7 +2,7 @@
 initialize_model!(model, ::Val{:Quiescent})   = nothing
 initialize_model!(model, ::Val{:DoubleDrake}) = set!(model, T = initial_temperature, S = 35.0)
 
-function boundary_conditions(::Val{:Quiscent})
+function boundary_conditions(::Val{:Quiescent})
 
     u_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
     v_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
