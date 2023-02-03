@@ -1,6 +1,14 @@
 
 initialize_model!(model, ::Val{:Quiescent})   = nothing
-initialize_model!(model, ::Val{:DoubleDrake}) = set!(model, T = initial_temperature, S = 35.0)
+
+function initialize_model!(model, ::Val{:DoubleDrake})
+    Depth = model.grid.Lz
+    exp_length = Depth / 5.0
+
+    @inline init_temperature(λ, φ, z) = initial_temperature(λ, φ, z; Lz = Depth, h = exp_length)
+
+    set!(model, T = init_temperature, S = 35.0)
+end
 
 function boundary_conditions(::Val{:Quiescent})
 

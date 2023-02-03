@@ -1,3 +1,5 @@
+using Oceananigans.Grids: ynodes
+
 function linear_z_faces(Nz, Depth; first_Δ = 5)
 
     m = (Depth - (Nz * first_Δ)) / sum(1:Nz-1)
@@ -97,5 +99,5 @@ end
     return @inbounds 1 / tᵣ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-@inline exponential_profile(z; Δ = ΔB, Lz = Lz, h = h) = ( Δ * (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) )
-@inline initial_temperature(λ, φ, z) = exponential_profile(z; Δ = 30) * T_reference(φ)
+@inline exponential_profile(z; Lz, h)       = ( 30 * (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) )
+@inline initial_temperature(λ, φ, z; Lz, h) = exponential_profile(z; Lz, h) * T_reference(φ)
