@@ -17,7 +17,7 @@ ranks      = (Rx, Ry, 1)
 resolution = parse(Int, get(ENV, "RESOLUTION", "3"))
 experiment = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
 
-Δt = 5minutes * (3 / resolution)
+Δt = 15minutes * (3 / resolution)
 stop_iteration = 5000
 
 if rank == 0

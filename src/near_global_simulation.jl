@@ -58,7 +58,7 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                                          vertical_scheme   = WENO()) 
 
     #####
-    CFL            = 0.8
+    CFL            = 0.6
     wave_speed     = sqrt(g_Earth * grid.Lz)
     Δgr            = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
 
