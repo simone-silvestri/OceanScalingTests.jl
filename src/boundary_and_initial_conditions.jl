@@ -25,8 +25,8 @@ function set_boundary_conditions(::Val{:DoubleDrake})
     u_coeffs = wind_stress_coefficients(80.0)
     S_coeffs = salinity_flux_coefficients(80.0, 35.0)
 
-    u_top_bc = FluxBoundaryCondition(surface_stress_x,      discrete_form=true, parameters=(; coeffs = u_coeffs))
-    S_top_bc = FluxBoundaryCondition(surface_salinity_flux, discrete_form=true, parameters=(; coeffs = S_coeffs))
+    u_top_bc = FluxBoundaryCondition(surface_stress_x,      discrete_form=true, parameters=u_coeffs)
+    S_top_bc = FluxBoundaryCondition(surface_salinity_flux, discrete_form=true, parameters=S_coeffs)
     T_top_bc = FluxBoundaryCondition(T_relaxation,          discrete_form=true, parameters=30days)
 
     u_bot_bc = FluxBoundaryCondition(u_bottom_drag, discrete_form=true, parameters = (; μ = 0.1))

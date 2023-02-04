@@ -84,12 +84,12 @@ end
 
 @inline function surface_stress_x(i, j, grid, clock, fields, p)
     φ = ynode(Center(), j, grid)
-    return wind_stress(φ, p.coeffs)
+    return wind_stress(φ, p)
 end
 
 @inline function surface_salinity_flux(i, j, grid, clock, fields, p)
     φ = ynode(Center(), j, grid)
-    return salinity_flux(φ, p.coeffs)
+    return salinity_flux(φ, p)
 end
 
 @inline T_reference(φ) = max(0.0, 30.0 * cos(1.2 * π * φ / 180))
