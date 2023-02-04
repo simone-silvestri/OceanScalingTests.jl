@@ -8,12 +8,13 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                            Depth = 3kilometers,
                            no_ibg = false,
                            experiment = :Quiescent, 
-                           latitude = (-80, 80))
+                           latitude = (-80, 80),
+                           use_buffers = false)
 
     child_arch = GPU()
 
     topo = (Periodic, Bounded, Bounded)
-    arch = MultiArch(child_arch; topology = topo, ranks)
+    arch = MultiArch(child_arch; topology = topo, ranks, use_buffers)
 
     Lφ = latitude[2] - latitude[1]
 
