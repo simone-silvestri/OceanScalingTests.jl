@@ -1,4 +1,4 @@
-using Oceananigans.Grids: ynodes
+using Oceananigans.Grids: ynode
 
 function linear_z_faces(Nz, Depth; first_Δ = 5)
 
