@@ -8,7 +8,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
                                  Depth = 3kilometers,
                                  experiment = :Quiescent, 
                                  latitude = (-80, 80),
-                                 use_buffers = false)
+                                 use_buffers = false,
+                                 z_faces_function = exponential_z_faces)
 
     child_arch = GPU()
 
@@ -24,10 +25,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
 
     @show Ny / arch.ranks[2]
 
-    z_faces = linear_z_faces(Nz, Depth)
-
-    rx, ry, _ = arch.local_index
-
+    z_faces = z_faces_function(Nz, Depth)
+    
     # A spherical domain
     @show grid = LatitudeLongitudeGrid(arch,
                                        size = (Nx, Ny, Nz),

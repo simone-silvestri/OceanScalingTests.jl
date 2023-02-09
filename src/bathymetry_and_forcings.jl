@@ -13,6 +13,22 @@ function linear_z_faces(Nz, Depth; first_Δ = 5)
     return z_faces
 end
 
+@inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) 
+
+function exponential_z_faces(Nz, Depth; h = Nz / 3)
+
+    z_faces = exponential_profile.((1:Nz+1); Lz = Nz, h)
+
+    z_faces .-= z_faces[1]
+    z_faces .*= - Depth / z_faces[end]
+
+    z_faces = z_faces[end:-1:1]
+    
+    z_faces[end] = 0.0
+
+    return z_faces
+end
+
 function double_drake_bathymetry(λ, φ) 
     if φ > -40
         (λ >  0 && λ < 1)  && return 0.0
@@ -99,5 +115,4 @@ end
     return @inbounds 1 / tᵣ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-@inline exponential_profile(z; Lz, h)       = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) 
 @inline initial_temperature(λ, φ, z; Lz, h) = exponential_profile(z; Lz, h) * T_reference(φ)

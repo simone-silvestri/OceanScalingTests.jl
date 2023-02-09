@@ -16,7 +16,7 @@ Rx = 1
 ranks       = (Rx, Ry, 1)
 resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
 experiment  = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
-use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "0"))
+use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
 
 Δt = 10minutes * (3 / resolution)
 stop_iteration = 10000000
@@ -27,7 +27,8 @@ end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_iteration; experiment, use_buffers)
 
-set_outputs!(simulation, Val(experiment))
+OceanScalingTests.set_outputs!(simulation, Val(experiment))
 
 run!(simulation)
-# MPI.Finalize()
+
+MPI.Finalize()
