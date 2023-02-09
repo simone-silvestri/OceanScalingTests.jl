@@ -14,7 +14,7 @@ function linear_z_faces(Nz, Depth; first_Δ = 5)
 end
 
 function double_drake_bathymetry(λ, φ) 
-    if φ > -45
+    if φ > -40
         (λ >  0 && λ < 1)  && return 0.0
         (λ > 90 && λ < 91) && return 0.0
     end
