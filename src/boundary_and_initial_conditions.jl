@@ -6,7 +6,7 @@ function initialize_model!(model, ::Val{:DoubleDrake})
     Depth = model.grid.Lz
     exp_length = Depth / 5.0
 
-    @inline init_temperature(λ, φ, z) = initial_temperature(λ, φ, z; Lz = Depth, h = exp_length)
+    @inline init_temperature(λ, φ, z) = exponential_profile(z; Lz = Depth, h = exp_length) * max(T_reference(φ), 2.0)
 
     set!(model, T = init_temperature, S = 35.0)
 end
