@@ -25,6 +25,7 @@ if rank == 0
     @info "Scaling test" ranks resolution Δt stop_iteration experiment use_buffers
 end
 
-OceanScalingTests.run_scaling_test!(resolution, ranks, Δt, stop_iteration; experiment, use_buffers)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_iteration; experiment, use_buffers)
 
-MPI.Finalize()
+
+# MPI.Finalize()

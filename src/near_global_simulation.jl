@@ -4,12 +4,11 @@ using Oceananigans.Utils
 using Oceananigans.Units
 using Oceananigans.Distributed: partition_global_array
 
-function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
-                           Depth = 3kilometers,
-                           no_ibg = false,
-                           experiment = :Quiescent, 
-                           latitude = (-80, 80),
-                           use_buffers = false)
+function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
+                                 Depth = 3kilometers,
+                                 experiment = :Quiescent, 
+                                 latitude = (-80, 80),
+                                 use_buffers = false)
 
     child_arch = GPU()
 
@@ -84,8 +83,7 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
                                           buoyancy,
                                           tracers = (:T, :S),
                                           boundary_conditions,
-                                          closure,
-                                          calculate_only_active_cells_tendencies = no_ibg)
+                                          closure)
 
     #####
     ##### Initial condition:
@@ -125,11 +123,5 @@ function run_scaling_test!(resolution, ranks, Δt, stop_iteration;
     # Let's goo!
     @show "Running with Δt = $(prettytime(simulation.Δt))"
 
-    run!(simulation)
-
-    @show """
-        Simulation took $(prettytime(simulation.run_wall_time))
-        Free surface: $(typeof(model.free_surface).name.wrapper)
-        Time step: $(prettytime(Δt))
-    """
+    return simulation
 end
