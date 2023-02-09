@@ -36,12 +36,12 @@ end
 end
 
 @inline function wind_stress_coefficients(south_north_limit)
-    below_45_coeffs = cubic_profile(-south_north_limit, -45.0, 0.0, 0.2, 0.0, 0.0)
-    below_15_coeffs = cubic_profile(-45.0, -15.0, 0.2, -0.1, 0.0, 0.0)
-    below_00_coeffs = cubic_profile(-15.0, 0.0, -0.1, -0.02, 0.0, 0.0)
-    above_00_coeffs = cubic_profile(0.0, 15.0, -0.02, -0.1, 0.0, 0.0)
-    above_15_coeffs = cubic_profile(15.0, 45.0, -0.1, 0.1, 0.0, 0.0)
-    above_45_coeffs = cubic_profile(45.0, south_north_limit, 0.1, 0.0, 0.0, 0.0)
+    below_45_coeffs = cubic_profile(-south_north_limit, -45.0, 0.0, 0.2, 0.0, 0.0) ./ 1000
+    below_15_coeffs = cubic_profile(-45.0, -15.0, 0.2, -0.1, 0.0, 0.0) ./ 1000
+    below_00_coeffs = cubic_profile(-15.0, 0.0, -0.1, -0.02, 0.0, 0.0) ./ 1000
+    above_00_coeffs = cubic_profile(0.0, 15.0, -0.02, -0.1, 0.0, 0.0) ./ 1000
+    above_15_coeffs = cubic_profile(15.0, 45.0, -0.1, 0.1, 0.0, 0.0) ./ 1000
+    above_45_coeffs = cubic_profile(45.0, south_north_limit, 0.1, 0.0, 0.0, 0.0) ./ 1000
     
     return (below_45_coeffs, below_15_coeffs, below_00_coeffs, above_00_coeffs, above_15_coeffs, above_45_coeffs)
 end

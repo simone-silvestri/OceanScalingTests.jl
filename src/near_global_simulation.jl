@@ -69,7 +69,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     @show substeps = Int(ceil(2 * Δt / (CFL / wave_speed * Δg)))
 
     free_surface = SplitExplicitFreeSurface(; substeps)
-    buoyancy     = SeawaterBuoyancy(equation_of_state=LinearEquationOfState(), constant_salinity = 35.0)
+    buoyancy     = SeawaterBuoyancy(equation_of_state=LinearEquationOfState())
     
     closure      = (vertical_diffusivity, convective_adjustment)
     coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
