@@ -1,0 +1,27 @@
+
+function set_outputs!(simulation, ::Val{:DoubleDrake})
+
+    model   = simulation.model
+
+    outputs = Dict()
+    indices = (:, :, model.grid.Nz) 
+
+    outputs[:u] = Field(model.velocities.u; indices)
+    outputs[:v] = Field(model.velocities.v; indices)
+    outputs[:w] = Field(model.velocities.w; indices)
+    outputs[:η] = model.free_surface.η
+    outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
+
+    simulation.output_writers[name] = JLD2OutputWriter(model, outputs; dir,
+                                                       schedule = IterationInterval(1000),
+                                                       filename = "double_drake_fields_$rank",
+                                                       with_halos = true,
+                                                       overwrite_existing = true)
+
+    simulation.output_writers[:checkpointer] = Checkpointer(model,
+                                                            schedule = IterationInterval(500000),
+                                                            prefix = "double_drake_checkpoint_$rank",
+                                                            overwrite_existing = true)
+end
+
+set_outputs!(simulation, ::Val{:Quiescent}) = nothing
