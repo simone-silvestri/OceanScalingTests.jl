@@ -15,11 +15,11 @@ function set_outputs!(simulation, ::Val{:DoubleDrake})
 
     rank = model.grid.architecture.local_rank
 
-    simulation.output_writers[name] = JLD2OutputWriter(model, outputs;
-                                                       schedule = IterationInterval(1000),
-                                                       filename = "double_drake_fields_$rank",
-                                                       with_halos = true,
-                                                       overwrite_existing = true)
+    simulation.output_writers[:surface] = JLD2OutputWriter(model, outputs;
+                                                           schedule = IterationInterval(1000),
+                                                           filename = "double_drake_fields_$rank",
+                                                           with_halos = true,
+                                                           overwrite_existing = true)
 
     simulation.output_writers[:checkpointer] = Checkpointer(model,
                                                             schedule = IterationInterval(500000),

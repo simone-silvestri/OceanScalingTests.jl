@@ -26,7 +26,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     @show Ny / arch.ranks[2]
 
     z_faces = z_faces_function(Nz, Depth)
-    
+
     # A spherical domain
     @show grid = LatitudeLongitudeGrid(arch,
                                        size = (Nx, Ny, Nz),
@@ -107,7 +107,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
         w = sim.model.velocities.w
         η = sim.model.free_surface.η
 
-	@show @info("Time: % 12s, iteration: %d, max(|u|, |v|, |w|): %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wall time: %s", 
+	@info @sprintf("Time: % 12s, iteration: %d, max(|u|, |v|, |w|): %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wall time: %s", 
                         prettytime(sim.model.clock.time),
                         sim.model.clock.iteration, maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η),
                         prettytime(wall_time))
