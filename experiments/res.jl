@@ -18,7 +18,7 @@ resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
 experiment  = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
 use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
 
-Δt = 5minutes * (3 / resolution)
+Δt = 10minutes * (3 / resolution)
 stop_iteration = 1000
 
 if rank == 0

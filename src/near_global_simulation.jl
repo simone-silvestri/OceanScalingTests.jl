@@ -21,7 +21,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     # 0.25 degree resolution
     Nx = Int(360 * resolution)
     Ny = Int(Lφ * resolution)
-    Nz = 250
+    Nz = 150
 
     @show Ny / arch.ranks[2]
 
