@@ -31,4 +31,4 @@ OceanScalingTests.set_outputs!(simulation, Val(experiment))
 
 run!(simulation)
 
-# MPI.Finalize()
+MPI.Finalize()

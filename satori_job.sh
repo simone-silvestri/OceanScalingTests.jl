@@ -28,4 +28,4 @@ exec \$*
 EoF_s
 chmod +x launch.sh
 
-srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/res.jl ${RESOLUTION:=3}
+srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
