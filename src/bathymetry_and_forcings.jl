@@ -98,6 +98,9 @@ end
 @inline u_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
 @inline v_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
 
+@inline u_linear_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1]
+@inline v_linear_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1]
+
 @inline function surface_stress_x(i, j, grid, clock, fields, p)
     φ = ynode(Center(), j, grid)
     return wind_stress(φ, p)
@@ -110,9 +113,9 @@ end
 
 @inline T_reference(φ) = max(0.0, 30.0 * cos(1.2 * π * φ / 180))
 
-@inline function T_relaxation(i, j, grid, clock, fields, tᵣ)
+@inline function T_relaxation(i, j, grid, clock, fields, λ)
     φ = ynode(Center(), j, grid)
-    return @inbounds 1 / tᵣ * (fields.T[i, j, grid.Nz] - T_reference(φ))
+    return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
 @inline initial_temperature(λ, φ, z; Lz, h) = exponential_profile(z; Lz, h) * T_reference(φ)

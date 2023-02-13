@@ -28,20 +28,18 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     z_faces = z_faces_function(Nz, Depth)
 
     # A spherical domain
-    @show grid = LatitudeLongitudeGrid(arch,
-                                       size = (Nx, Ny, Nz),
-                                       longitude = (-180, 180),
-                                       latitude = latitude,
-                                       halo = (5, 5, 5),
-                                       z = z_faces,
-                                       precompute_metrics = true)
+    @show underlying_grid = LatitudeLongitudeGrid(arch,
+                                                  size = (Nx, Ny, Nz),
+                                                  longitude = (-180, 180),
+                                                  latitude = latitude,
+                                                  halo = (5, 5, 5),
+                                                  z = z_faces,
+                                                  precompute_metrics = true)
 
 
-    if experiment == :DoubleDrake
-        grid = ImmersedBoundaryGrid(grid, GridFittedBottom(double_drake_bathymetry))
-
-	@show arch.local_rank, grid.immersed_boundary
-    end
+    grid = experiment == :DoubleDrake ? 
+        ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
+        underlying_grid
 
     #####
     ##### Physics and model setup
@@ -53,10 +51,10 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     convective_adjustment  = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.2, convective_νz = 0.2)
     vertical_diffusivity   = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), ν=νz, κ=κz)
         
-    tracer_advection   = WENO()
+    tracer_advection   = WENO(underlying_grid)
     momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
                                          divergence_scheme = WENO(), 
-                                         vertical_scheme   = WENO()) 
+                                         vertical_scheme   = WENO(underlying_grid)) 
 
     #####
     CFL            = 0.6
@@ -68,7 +66,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     @show substeps = Int(ceil(2 * Δt / (CFL / wave_speed * Δg)))
 
     free_surface = SplitExplicitFreeSurface(; substeps)
-    buoyancy     = SeawaterBuoyancy(equation_of_state=LinearEquationOfState())
+    buoyancy     = SeawaterBuoyancy(equation_of_state=LinearEquationOfState(), constant_salinity = 35.0)
     
     closure      = (vertical_diffusivity, convective_adjustment)
     coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
@@ -107,7 +105,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
         w = sim.model.velocities.w
         η = sim.model.free_surface.η
 
-	@info @sprintf("Time: % 12s, iteration: %d, max(|u|, |v|, |w|): %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wall time: %s", 
+	    @info @sprintf("Time: % 12s, iteration: %d, max(|u|, |v|, |w|): %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wall time: %s", 
                         prettytime(sim.model.clock.time),
                         sim.model.clock.iteration, maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η),
                         prettytime(wall_time))
