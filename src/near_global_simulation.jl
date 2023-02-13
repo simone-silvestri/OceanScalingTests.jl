@@ -32,8 +32,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     Ny = Int(Lφ * resolution)
     Nz = 150
 
-    @show Ny / arch.ranks[2]
-
     z_faces = z_faces_function(Nz, Depth)
 
     # A spherical domain
