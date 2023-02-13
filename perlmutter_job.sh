@@ -1,7 +1,5 @@
 #!/bin/bash
-#SBATCH -N 4
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
 #SBATCH --ntasks-per-core=1
 #SBATCH --threads-per-core=1
@@ -22,5 +20,5 @@ EoF_s
 chmod +x launch.sh
 
 cp perlmutter/* .
-srun -n 4 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
+srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
 rm *.toml

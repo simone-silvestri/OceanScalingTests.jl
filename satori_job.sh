@@ -28,4 +28,6 @@ exec \$*
 EoF_s
 chmod +x launch.sh
 
+cp satori/* .
 srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
+rm *.toml
