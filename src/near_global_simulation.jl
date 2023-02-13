@@ -4,10 +4,19 @@ using Oceananigans.Utils
 using Oceananigans.Units
 using Oceananigans.Distributed: partition_global_array
 
+# Calculate barotropic substeps based on barotropic CFL number and wave speed
+function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
+    wave_speed = sqrt(gravitational_acceleration * grid.Lz)
+    local_Δ    = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
+    global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
+
+   return Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ)))
+end
+
 function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
                                  Depth = 3kilometers,
                                  experiment = :Quiescent, 
-                                 latitude = (-80, 80),
+                                 latitude = (-75, 75),
                                  use_buffers = false,
                                  z_faces_function = exponential_z_faces)
 
@@ -18,7 +27,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
 
     Lφ = latitude[2] - latitude[1]
 
-    # 0.25 degree resolution
+    # grid size
     Nx = Int(360 * resolution)
     Ny = Int(Lφ * resolution)
     Nz = 150
@@ -45,11 +54,11 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     ##### Physics and model setup
     #####
 
-    νz = 5e-3
-    κz = 1e-4
+    νz = 5e-4
+    κz = 3e-5
 
-    convective_adjustment  = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.2, convective_νz = 0.2)
-    vertical_diffusivity   = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), ν=νz, κ=κz)
+    convective_adjustment = RiBasedVerticalDiffusivity()
+    vertical_diffusivity  = VerticalScalarDiffusivity(ν=νz, κ=κz)
         
     tracer_advection   = WENO(underlying_grid)
     momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
@@ -57,21 +66,15 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
                                          vertical_scheme   = WENO(underlying_grid)) 
 
     #####
-    CFL            = 0.6
-    wave_speed     = sqrt(g_Earth * grid.Lz)
-    Δgr            = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
+    free_surface = SplitExplicitFreeSurface(; substeps = barotropic_substeps(Δt, grid, g_Earth))
 
-    Δg = MPI.Allreduce(Δgr, min, arch.communicator)
+    @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
-    @show substeps = Int(ceil(2 * Δt / (CFL / wave_speed * Δg)))
+    buoyancy = SeawaterBuoyancy(equation_of_state=LinearEquationOfState())
+    closure  = (vertical_diffusivity, convective_adjustment)
+    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
 
-    free_surface = SplitExplicitFreeSurface(; substeps)
-    buoyancy     = SeawaterBuoyancy(equation_of_state=LinearEquationOfState(), constant_salinity = 35.0)
-    
-    closure      = (vertical_diffusivity, convective_adjustment)
-    coriolis     = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
-
-    boundary_conditions = set_boundary_conditions(Val(experiment))
+    boundary_conditions = set_boundary_conditions(Val(experiment), grid.Ly)
 
     model = HydrostaticFreeSurfaceModel(; grid,
                                           free_surface,

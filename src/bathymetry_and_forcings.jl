@@ -21,7 +21,6 @@ function exponential_z_faces(Nz, Depth; h = Nz / 3)
 
     z_faces .-= z_faces[1]
     z_faces .*= - Depth / z_faces[end]
-
     z_faces = z_faces[end:-1:1]
     
     z_faces[end] = 0.0
@@ -30,7 +29,7 @@ function exponential_z_faces(Nz, Depth; h = Nz / 3)
 end
 
 function double_drake_bathymetry(λ, φ) 
-    if φ > -40
+    if φ > -35
         (λ >  0 && λ < 1)  && return 0.0
         (λ > 90 && λ < 91) && return 0.0
     end
@@ -51,6 +50,7 @@ end
     return tuple(coeff...)
 end
 
+# Coefficients for a piecewise cubic interpolation of wind stress 
 @inline function wind_stress_coefficients(south_north_limit)
     below_45_coeffs = cubic_profile(-south_north_limit, -45.0, 0.0, 0.2, 0.0, 0.0) ./ 1000
     below_15_coeffs = cubic_profile(-45.0, -15.0, 0.2, -0.1, 0.0, 0.0) ./ 1000
@@ -62,6 +62,7 @@ end
     return (below_45_coeffs, below_15_coeffs, below_00_coeffs, above_00_coeffs, above_15_coeffs, above_45_coeffs)
 end
 
+# Coefficients for a piecewise cubic interpolation of surface salinity flux
 @inline function salinity_flux_coefficients(south_north_limit, initial_salinity)
     below_20_coeffs = cubic_profile(-south_north_limit, -20.0, -2e-8, 2e-8, 0.0, 0.0) .* initial_salinity
     below_00_coeffs = cubic_profile(-20.0, 0.0, 2e-8, -4e-8, 0.0, 0.0) .* initial_salinity
