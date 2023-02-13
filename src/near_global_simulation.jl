@@ -18,7 +18,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
                                  experiment = :Quiescent, 
                                  latitude = (-75, 75),
                                  use_buffers = false,
-                                 z_faces_function = exponential_z_faces)
+                                 z_faces_function = exponential_z_faces,
+                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity())
 
     child_arch = GPU()
 
@@ -55,7 +56,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     νz = 5e-4
     κz = 3e-5
 
-    convective_adjustment = RiBasedVerticalDiffusivity()
     vertical_diffusivity  = VerticalScalarDiffusivity(ν=νz, κ=κz)
         
     tracer_advection   = WENO(underlying_grid)
@@ -68,7 +68,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
     buoyancy = SeawaterBuoyancy(equation_of_state=LinearEquationOfState())
-    closure  = (vertical_diffusivity, convective_adjustment)
+    closure  = (vertical_diffusivity, boundary_layer_parameterization)
     coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
 
     #####
@@ -81,12 +81,15 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     ##### Model setup
     #####
 
+    tracers = boundary_layer_parameterization isa CATKEVerticalDiffusivity ?
+              (:T, :S, :e) : (:T, :S)
+
     model = HydrostaticFreeSurfaceModel(; grid,
                                           free_surface,
                                           momentum_advection, tracer_advection,
                                           coriolis,
                                           buoyancy,
-                                          tracers = (:T, :S),
+                                          tracers,
                                           boundary_conditions,
                                           closure)
 

@@ -10,6 +10,8 @@ function set_outputs!(simulation, ::Val{:DoubleDrake})
     outputs[:u] = Field(model.velocities.u; indices)
     outputs[:v] = Field(model.velocities.v; indices)
     outputs[:w] = Field(model.velocities.w; indices)
+    outputs[:T] = Field(model.tracers.T;    indices)
+    outputs[:S] = Field(model.tracers.S;    indices)
     outputs[:η] = model.free_surface.η
     outputs[:ζ] = VerticalVorticityField(model.grid, model.velocities; indices)
 

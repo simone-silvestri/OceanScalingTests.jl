@@ -19,7 +19,7 @@ experiment  = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
 use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
 
 Δt = 10minutes * (3 / resolution)
-stop_iteration = 4000
+stop_iteration = 30000
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_iteration experiment use_buffers
