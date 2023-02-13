@@ -49,7 +49,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
         underlying_grid
 
     #####
-    ##### Physics and model setup
+    ##### Physics setup and numerical methods
     #####
 
     νz = 5e-4
@@ -63,7 +63,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
                                          divergence_scheme = WENO(), 
                                          vertical_scheme   = WENO(underlying_grid)) 
 
-    #####
     free_surface = SplitExplicitFreeSurface(; substeps = barotropic_substeps(Δt, grid, g_Earth))
 
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
@@ -72,7 +71,15 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     closure  = (vertical_diffusivity, convective_adjustment)
     coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
 
+    #####
+    ##### Boundary conditions
+    #####
+
     boundary_conditions = set_boundary_conditions(Val(experiment), grid.Ly)
+
+    #####
+    ##### Model setup
+    #####
 
     model = HydrostaticFreeSurfaceModel(; grid,
                                           free_surface,
