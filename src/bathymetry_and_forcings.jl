@@ -19,13 +19,13 @@ function exponential_z_faces(Nz, Depth; h = Nz / 3)
 
     z_faces = exponential_profile.((1:Nz+1); Lz = Nz, h)
 
+    # Normalize
     z_faces .-= z_faces[1]
     z_faces .*= - Depth / z_faces[end]
-    z_faces = z_faces[end:-1:1]
     
-    z_faces[end] = 0.0
+    z_faces[1] = 0.0
 
-    return z_faces
+    return reverse(z_faces)
 end
 
 function double_drake_bathymetry(λ, φ) 
@@ -118,5 +118,3 @@ end
     φ = ynode(Center(), j, grid)
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
-
-@inline initial_temperature(λ, φ, z; Lz, h) = exponential_profile(z; Lz, h) * T_reference(φ)
