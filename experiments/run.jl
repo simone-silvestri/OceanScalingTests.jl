@@ -1,6 +1,7 @@
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Utils: prettytime
 using MPI
 using JLD2
 
@@ -31,4 +32,6 @@ OceanScalingTests.set_outputs!(simulation, Val(experiment))
 
 run!(simulation)
 
-# MPI.Finalize()
+@info "simulation took $(prettytime(simulation.run_wall_time))"
+
+MPI.Finalize()
