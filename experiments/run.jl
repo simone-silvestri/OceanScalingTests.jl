@@ -2,6 +2,7 @@ using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: prettytime
+using NVTX
 using MPI
 using JLD2
 

@@ -3,6 +3,7 @@ module OceanScalingTests
 using Statistics
 using JLD2
 using Printf
+using NVTX
 using Oceananigans
 using Oceananigans.Units
 

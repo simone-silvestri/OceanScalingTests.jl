@@ -107,6 +107,17 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
 
     simulation = Simulation(model; Δt, stop_iteration)
 
+    profile = parse(Bool, get(ENV, "PROFILE", "0"))
+    
+    # If we are profiling launch only 100 time steps and mark each one with NVTX
+    if profile
+        simulation.stop_iteration = 100
+        mark_timestep(sim) = NVTX.@mark "one time step"
+        simulation.callbacks[:mark_timestep] = Callback(progress, IterationInterval(1))
+
+        return simulation
+    end
+
     start_time = [time_ns()]
 
     function progress(sim)
@@ -128,9 +139,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     end
 
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
-
-    # Let's goo!
-    @show "Running with Δt = $(prettytime(simulation.Δt))"
 
     return simulation
 end
