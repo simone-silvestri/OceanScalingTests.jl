@@ -44,10 +44,11 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
                                                   z = z_faces,
                                                   precompute_metrics = true)
 
-
-    grid = experiment == :DoubleDrake ? 
-        ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
-        underlying_grid
+    grid = experiment == :RealisticOcean ? 
+           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(grid))) :
+           experiment == :DoubleDrake ?
+           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
+           underlying_grid
 
     #####
     ##### Physics setup and numerical methods
