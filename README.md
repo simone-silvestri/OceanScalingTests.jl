@@ -11,5 +11,6 @@
 4. `EXPERIMENT="DoubleDrake" RESOLUTION=6 sbatch -N1 perlmutter_job.sh`
 
 Example of vorticity with `EXPERIMENT="DoubleDrake"` and `Resolution=3` 
+
 https://user-images.githubusercontent.com/33547697/218752172-f7992f3b-04d4-4c41-b61f-f593011ccceb.mp4
 
