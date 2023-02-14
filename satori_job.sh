@@ -20,6 +20,7 @@ export OMPI_MCA_osc=^ucx
 export OMPI_MCA_btl_openib_allow_ib=true
 
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
+export JULIA_NVTX_CALLBACKS=gc
 
 cat > launch.sh << EoF_s
 #! /bin/sh
@@ -28,6 +29,7 @@ exec \$*
 EoF_s
 chmod +x launch.sh
 
+
 cp satori/* .
-srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
+nsys --profile --trace=nvtx,cuda,mpi --output=report_new srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
 rm *.toml
