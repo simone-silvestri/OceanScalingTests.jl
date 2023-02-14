@@ -113,7 +113,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     if profile
         simulation.stop_iteration = 100
         mark_timestep(sim) = NVTX.@mark "one time step"
-        simulation.callbacks[:mark_timestep] = Callback(progress, IterationInterval(1))
+        simulation.callbacks[:mark_timestep] = Callback(mark_timestep, IterationInterval(1))
 
         return simulation
     end
