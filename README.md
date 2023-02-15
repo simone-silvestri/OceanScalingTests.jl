@@ -12,8 +12,8 @@
 
 ## Example
 
-vorticity (left) and free surface (right) for the "DoubleDrake" experiment at resolution = 3 ran on 2 mpi processors (5 years integration)
+vorticity (left) and free surface (right) for the "DoubleDrake" experiment at resolution = 3 ran on 2 mpi processors (9 years integration)
 
 
-https://user-images.githubusercontent.com/33547697/218850549-f4efc360-7937-4833-8aef-c4dd4863a605.mp4
+https://user-images.githubusercontent.com/33547697/219111104-666e1215-933d-4d31-9628-57ed87b335e4.mp4
 
