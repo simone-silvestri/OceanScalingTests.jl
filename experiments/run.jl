@@ -17,7 +17,7 @@ Rx = Nranks
 
 ranks       = (Rx, Ry, 1)
 resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
-experiment  = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
+experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
 use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
 
 Δt = 10minutes * (3 / resolution)
