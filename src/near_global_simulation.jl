@@ -31,7 +31,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     # grid size
     Nx = Int(360 * resolution)
     Ny = Int(Lφ * resolution)
-    Nz = 150
+    Nz = 120
 
     z_faces = z_faces_function(Nz, Depth)
 
@@ -70,7 +70,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
 
     buoyancy = SeawaterBuoyancy(equation_of_state=LinearEquationOfState())
     closure  = (vertical_diffusivity, boundary_layer_parameterization)
-    coriolis = HydrostaticSphericalCoriolis(scheme = WetCellEnstrophyConservingScheme())
+    coriolis = HydrostaticSphericalCoriolis()
 
     #####
     ##### Boundary conditions
@@ -101,23 +101,34 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     initialize_model!(model, Val(experiment))
     @info "model initialized"
 
+    @show model.velocities.u.boundary_conditions
+
+    profile = parse(Bool, get(ENV, "PROFILE", "1"))
+    
+    # If we are profiling launch only 100 time steps and mark each one with NVTX
+    if profile
+       for step in 1:10
+	  time_step!(model, Δt)
+       end
+
+       for step in 1:10
+	  for nogc in 1:10
+             NVTX.@range "one time step" begin
+	        time_step!(model, Δt)
+             end
+          end
+          GC.gc()
+       end
+
+       return nothing
+    end
+
     #####
     ##### Simulation setup
     #####
 
     simulation = Simulation(model; Δt, stop_iteration)
-
-    profile = parse(Bool, get(ENV, "PROFILE", "0"))
-    
-    # If we are profiling launch only 100 time steps and mark each one with NVTX
-    if profile
-        simulation.stop_iteration = 100
-        mark_timestep(sim) = NVTX.@mark "one time step"
-        simulation.callbacks[:mark_timestep] = Callback(mark_timestep, IterationInterval(1))
-
-        return simulation
-    end
-
+ 
     start_time = [time_ns()]
 
     function progress(sim)
