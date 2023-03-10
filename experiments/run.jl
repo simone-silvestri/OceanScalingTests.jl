@@ -1,3 +1,5 @@
+import Pkg
+Pkg.activate("/nobackup/users/ssilvest/OceanScalingTests.jl/")
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
@@ -6,7 +8,12 @@ using NVTX
 using MPI
 using JLD2
 
+using Oceananigans.Models.HydrostaticFreeSurfaceModels
+
 MPI.Init()
+
+include("/nobackup/users/ssilvest/OceanScalingTests.jl/precompile_0/precompile_Oceananigans.Models.HydrostaticFreeSurfaceModels.jl")
+_precompile_()
 
 comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
@@ -29,10 +36,11 @@ end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_iteration; experiment, use_buffers)
 
-OceanScalingTests.set_outputs!(simulation, Val(experiment))
+if !isnothing(simulation)
+    OceanScalingTests.set_outputs!(simulation, Val(experiment))
+    run!(simulation)
 
-run!(simulation)
+    @info "simulation took $(prettytime(simulation.run_wall_time))"
+end
 
-@info "simulation took $(prettytime(simulation.run_wall_time))"
-
-MPI.Finalize()
+# MPI.Finalize()
