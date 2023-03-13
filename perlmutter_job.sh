@@ -15,6 +15,7 @@ module load openmpi/3.1.6-cuda-pmi-ucx-slurm-jhklron
 export SBATCH_ACCOUNT=m1759
 export SALLOC_ACCOUNT=m1759
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
+export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/perlmutter"
 
 export SLURM_CPU_BIND="cores"
 export CRAY_ACCEL_TARGET="nvidia80"

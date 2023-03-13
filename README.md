@@ -10,6 +10,11 @@
 ## Perlmutter
 4. `EXPERIMENT="DoubleDrake" RESOLUTION=6 sbatch -N1 perlmutter_job.sh`
 
+
+## Packages:
+- `Oceananigans.jl.git#ss-vc/overlay`
+- `CUDA.jl.git#vc/ka_transition`
+
 ## Example
 
 vorticity (left) and free surface (right) for the "DoubleDrake" experiment at resolution = 3 ran on 2 mpi processors (9 years integration)
