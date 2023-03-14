@@ -10,11 +10,13 @@ function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
     local_Δ    = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
 
-   return Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ)))
+    return Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ)))
 end
 
+experiment_depth(exp) = exp == :RealisticOcean ? 6kilometers : 3kilometers
+
 function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
-                                 Depth = 3kilometers,
+                                 Depth = experiment_depth(experiment),
                                  experiment = :Quiescent, 
                                  latitude = (-75, 75),
                                  use_buffers = false,
