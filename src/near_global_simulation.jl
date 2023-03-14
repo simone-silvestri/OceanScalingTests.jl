@@ -107,20 +107,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
-       for step in 1:10
-	  time_step!(model, Δt)
-       end
-
-       for step in 1:10
-	  for nogc in 1:10
-             NVTX.@range "one time step" begin
-	        time_step!(model, Δt)
-             end
-          end
-          GC.gc()
-       end
-
-       return nothing
+        profiled_time_step!(model, Δt)
+        return nothing
     end
 
     #####
@@ -152,4 +140,21 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
     return simulation
+end
+
+function profiled_time_step!(model, Δt; gc_steps = 10, profiled_steps = 10)
+    # initial time steps
+    for step in 1:10
+        time_step!(model, Δt)
+    end
+  
+    # Perform profiling
+    for step in 1:gc_steps
+        for nogc in 1:profiled_steps
+            NVTX.@range "one time step" begin
+                time_step!(model, Δt)
+            end
+        end
+        GC.gc()
+    end
 end

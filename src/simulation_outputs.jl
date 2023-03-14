@@ -1,6 +1,7 @@
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
+using Oceananigans.Units
 
-function set_outputs!(simulation, ::Val{:DoubleDrake})
+function set_outputs!(simulation, ::Val{Experiment}; surface_time = 5days, checkpoint_time = 30days) where Experiment
 
     model   = simulation.model
 
@@ -18,14 +19,14 @@ function set_outputs!(simulation, ::Val{:DoubleDrake})
     rank = model.grid.architecture.local_rank
 
     simulation.output_writers[:surface] = JLD2OutputWriter(model, outputs;
-                                                           schedule = IterationInterval(1000),
-                                                           filename = "double_drake_fields_$rank",
+                                                           schedule = TimeInterval(surface_time),
+                                                           filename = "$(Experiment)_fields_$rank",
                                                            with_halos = true,
                                                            overwrite_existing = true)
 
     simulation.output_writers[:checkpointer] = Checkpointer(model,
-                                                            schedule = IterationInterval(500000),
-                                                            prefix = "double_drake_checkpoint_$rank",
+                                                            schedule = TimeInterval(checkpoint_time),
+                                                            prefix = "$(Experiment)_checkpoint_$rank",
                                                             overwrite_existing = true)
 end
 
