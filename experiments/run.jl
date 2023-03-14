@@ -1,5 +1,3 @@
-import Pkg
-Pkg.activate("/nobackup/users/ssilvest/OceanScalingTests.jl/")
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
@@ -11,9 +9,6 @@ using JLD2
 using Oceananigans.Models.HydrostaticFreeSurfaceModels
 
 MPI.Init()
-
-include("/nobackup/users/ssilvest/OceanScalingTests.jl/precompile_0/precompile_Oceananigans.Models.HydrostaticFreeSurfaceModels.jl")
-_precompile_()
 
 comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
