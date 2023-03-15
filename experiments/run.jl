@@ -23,13 +23,13 @@ experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
 use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
 
 Δt = 10minutes * (3 / resolution)
-stop_iteration = 30000
+stop_time = 1year
 
 if rank == 0
-    @info "Scaling test" ranks resolution Δt stop_iteration experiment use_buffers
+    @info "Scaling test" ranks resolution Δt stop_time experiment use_buffers
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_iteration; experiment, use_buffers)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; experiment, use_buffers)
 
 if !isnothing(simulation)
     OceanScalingTests.set_outputs!(simulation, Val(experiment))

@@ -15,7 +15,7 @@ end
 
 experiment_depth(exp) = exp == :RealisticOcean ? 6kilometers : 3kilometers
 
-function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
+function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  Depth = experiment_depth(experiment),
                                  experiment = :Quiescent, 
                                  latitude = (-75, 75),
@@ -117,7 +117,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
     ##### Simulation setup
     #####
 
-    simulation = Simulation(model; Δt, stop_iteration)
+    simulation = Simulation(model; Δt, stop_time)
  
     start_time = [time_ns()]
 
