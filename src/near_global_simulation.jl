@@ -79,7 +79,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Boundary conditions
     #####
 
-    boundary_conditions = set_boundary_conditions(Val(experiment), grid.Ly)
+    boundary_conditions = set_boundary_conditions(Val(experiment), grid)
 
     #####
     ##### Model setup
