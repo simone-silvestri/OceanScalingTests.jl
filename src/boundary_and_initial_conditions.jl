@@ -18,9 +18,14 @@ function initialize_model!(model, ::Val{:RealisticOcean})
     rx = grid.architecture.local_rank
     nx = size(grid, 1) 
 
-    T_init = jldopen("../data/T_init.jld2")[1+rx*nx:(rx+1)*nx, :]
-    S_init = jldopen("../data/S_init.jld2")[1+rx*nx:(rx+1)*nx, :]
-    
+    T_init = zeros(size(grid)...)
+    S_init = zeros(size(grid)...)
+
+    for k in 1:grid.Nz
+        T_init[:, :, k] .= jldopen("data/T12y_at$(k).jld2")["T"][1+rx*nx:(rx+1)*nx, :, 1]
+        S_init[:, :, k] .= jldopen("data/S12y_at$(k).jld2")["S"][1+rx*nx:(rx+1)*nx, :, 1]
+    end
+
     set!(model, T = T_init, S = S_init)
 end
 
@@ -67,8 +72,8 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid)
     # This function assumes data is available to load from the folder `data/`
     τˣ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["τx"][1+rx*nx:(rx+1)*nx, :, :])
     τʸ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["τy"][1+rx*nx:(rx+1)*nx, :, :])
-    Qˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["Q"][1+rx*nx:(rx+1)*nx, :, :])
-    Fˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["F"][1+rx*nx:(rx+1)*nx, :, :])
+    Qˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["Qs"][1+rx*nx:(rx+1)*nx, :, :])
+    Fˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["Fs"][1+rx*nx:(rx+1)*nx, :, :])
 
     μ = 0.001 # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)

@@ -1,7 +1,7 @@
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.Units
 
-function set_outputs!(simulation, ::Val{Experiment}; surface_time = 5days, checkpoint_time = 30days) where Experiment
+function set_outputs!(simulation, ::Val{Experiment}; surface_time = 5days, checkpoint_time = 10days) where Experiment
 
     model   = simulation.model
 

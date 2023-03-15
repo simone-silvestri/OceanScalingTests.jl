@@ -14,11 +14,11 @@ function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
     return Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ)))
 end
 
-experiment_depth(exp) = exp == :RealisticOcean ? 6kilometers : 3kilometers
+experiment_depth(exp) = exp == :RealisticOcean ? 5244.5 : 3kilometers
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
-                                 Depth = experiment_depth(experiment),
                                  experiment = :Quiescent, 
+                                 Depth = experiment_depth(experiment),
                                  latitude = (-75, 75),
                                  use_buffers = false,
                                  z_faces_function = exponential_z_faces,
@@ -48,7 +48,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                                   precompute_metrics = true)
 
     grid = experiment == :RealisticOcean ? 
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(grid))) :
+           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid))) :
            experiment == :DoubleDrake ?
            ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
            underlying_grid

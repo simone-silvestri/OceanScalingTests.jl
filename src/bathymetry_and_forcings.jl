@@ -41,7 +41,7 @@ end
 function realistic_bathymetry(grid)
     rx = grid.architecture.local_rank
     nx = size(grid, 1) 
-    return jldopen("../data/bathymetry.jld2")[1+rx*nx:(rx+1)*nx, :]
+    return jldopen("data/bathymetry_24.jld2")["bathymetry"][1+rx*nx:(rx+1)*nx, :]
 end
 
 @inline function cubic_profile(x1, x2, y1, y2, d1, d2)
@@ -144,7 +144,8 @@ end
 @inline function update_fluxes(sim)
 
     filenum = Int(sim.model.clock.time ÷ 9days)
-    file    = jldopen("data/fluxes_$(filenum).jld2")
+    # file    = jldopen("data/fluxes_$(filenum).jld2")
+    file    = jldopen("data/fluxes_0.jld2")
 
     model = sim.model
     grid  = model.grid
@@ -159,9 +160,8 @@ end
 
     u_top.parameters .= file["τx"][1+rx*nx:(rx+1)*nx, :, :]
     v_top.parameters .= file["τy"][1+rx*nx:(rx+1)*nx, :, :]
-
-    T_top.parameters .= file["Q"][1+rx*nx:(rx+1)*nx, :, :]
-    S_top.parameters .= file["F"][1+rx*nx:(rx+1)*nx, :, :]
+    T_top.parameters .= file["Qs"][1+rx*nx:(rx+1)*nx, :, :]
+    S_top.parameters .= file["Fs"][1+rx*nx:(rx+1)*nx, :, :]
 
     return nothing
 end

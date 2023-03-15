@@ -23,7 +23,7 @@ experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
 use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
 
 Δt = 10minutes * (3 / resolution)
-stop_time = 1year
+stop_time = 200days
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment use_buffers
