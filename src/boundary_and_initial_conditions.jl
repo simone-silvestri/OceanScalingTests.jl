@@ -1,4 +1,5 @@
 using Oceananigans.Units
+using Oceananigans.Architectures: arch_array
 
 initialize_model!(model, ::Val{:Quiescent})   = nothing
 
@@ -23,7 +24,7 @@ function initialize_model!(model, ::Val{:RealisticOcean})
     set!(model, T = T_init, S = S_init)
 end
 
-function set_boundary_conditions(::Val{:Quiescent}, Ly)
+function set_boundary_conditions(::Val{:Quiescent}, grid)
 
     u_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
     v_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
@@ -33,7 +34,9 @@ function set_boundary_conditions(::Val{:Quiescent}, Ly)
     return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
-function set_boundary_conditions(::Val{:DoubleDrake}, Ly)
+function set_boundary_conditions(::Val{:DoubleDrake}, grid)
+
+    Ly = grid.Ly
 
     S_reference = 35.0 # reference salinity for salinity flux (psu)
     u_coeffs = wind_stress_coefficients(Ly/2)
@@ -56,12 +59,16 @@ function set_boundary_conditions(::Val{:DoubleDrake}, Ly)
     return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
-function set_boundary_conditions(::Val{:RealisticOcean}, Ly)
-    # This function assumes data is available to load from the folder `../data`
-    τˣ = nothing
-    τʸ = nothing
-    Tˢ = nothing
-    Sˢ = nothing
+function set_boundary_conditions(::Val{:RealisticOcean}, grid)
+
+    rx = grid.architecture.local_rank
+    nx = size(grid, 1) 
+
+    # This function assumes data is available to load from the folder `data/`
+    τˣ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["τx"][1+rx*nx:(rx+1)*nx, :, :])
+    τʸ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["τy"][1+rx*nx:(rx+1)*nx, :, :])
+    Qˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["Q"][1+rx*nx:(rx+1)*nx, :, :])
+    Fˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["F"][1+rx*nx:(rx+1)*nx, :, :])
 
     μ = 0.001 # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)
@@ -72,6 +79,11 @@ function set_boundary_conditions(::Val{:RealisticOcean}, Ly)
 
     u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_bot_bc)
     u_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc)
+
+    S_top_bc = FluxBoundaryCondition(flux_interpolate_array, discrete_form=true, parameters=Qˢ)
+    T_top_bc = FluxBoundaryCondition(flux_interpolate_array, discrete_form=true, parameters=Fˢ)
+    u_top_bc = FluxBoundaryCondition(flux_interpolate_array, discrete_form=true, parameters=τˣ)    
+    v_top_bc = FluxBoundaryCondition(flux_interpolate_array, discrete_form=true, parameters=τʸ)
 
     T_bcs = FieldBoundaryConditions(top=T_top_bc)
     S_bcs = FieldBoundaryConditions(top=S_top_bc)

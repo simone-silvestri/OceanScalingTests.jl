@@ -128,3 +128,41 @@ end
     φ = ynode(Center(), j, grid)
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
+
+# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:10 and represents day 0 to day 9
+@inline function flux_interpolate_array(i, j, grid, clock, fields, p)
+    n  = mod(clock.time, 9days) + 1
+    if n == 1
+        return p[i, j, n]
+    end
+    n₁ = Int(floor(n))
+    n₂ = n₁ + 1
+    return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
+end
+
+# Update fluxes through a Callback every 9days
+@inline function update_fluxes(sim)
+
+    filenum = Int(sim.model.clock.time ÷ 9days)
+    file    = jldopen("data/fluxes_$(filenum).jld2")
+
+    model = sim.model
+    grid  = model.grid
+
+    u_top = model.velocities.u.boundary_conditions.top.condition 
+    v_top = model.velocities.u.boundary_conditions.top.condition 
+    T_top = model.velocities.u.boundary_conditions.top.condition 
+    S_top = model.velocities.u.boundary_conditions.top.condition 
+
+    rx = grid.architecture.local_rank
+    nx = size(grid, 1) 
+
+    u_top.parameters .= file["τx"][1+rx*nx:(rx+1)*nx, :, :]
+    v_top.parameters .= file["τy"][1+rx*nx:(rx+1)*nx, :, :]
+
+    T_top.parameters .= file["Q"][1+rx*nx:(rx+1)*nx, :, :]
+    S_top.parameters .= file["F"][1+rx*nx:(rx+1)*nx, :, :]
+
+    return nothing
+end
+

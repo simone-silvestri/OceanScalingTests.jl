@@ -141,6 +141,10 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_iteration;
 
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
 
+    if experiment == :RealisticOcean
+        simulation.callbacks[:update_fluxes] = Callback(update_fluxes, TimeInterval(9days))
+    end
+
     return simulation
 end
 
