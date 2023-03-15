@@ -3,6 +3,7 @@ using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Units
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
+using SeawaterPolynomials: TEOS10EquationOfState
 
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
@@ -70,7 +71,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
-    buoyancy = SeawaterBuoyancy(equation_of_state=LinearEquationOfState())
+    buoyancy = SeawaterBuoyancy(equation_of_state=TEOS10EquationOfState())
     closure  = (vertical_diffusivity, boundary_layer_parameterization)
     coriolis = HydrostaticSphericalCoriolis()
 
