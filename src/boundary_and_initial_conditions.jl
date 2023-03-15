@@ -1,5 +1,6 @@
 using Oceananigans.Units
 using Oceananigans.Architectures: arch_array
+using Oceananigans.Distributed: child_architecture
 
 initialize_model!(model, ::Val{:Quiescent})   = nothing
 
@@ -70,10 +71,10 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid)
     nx = size(grid, 1) 
 
     # This function assumes data is available to load from the folder `data/`
-    τˣ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["τx"][1+rx*nx:(rx+1)*nx, :, :])
-    τʸ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["τy"][1+rx*nx:(rx+1)*nx, :, :])
-    Qˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["Qs"][1+rx*nx:(rx+1)*nx, :, :])
-    Fˢ = arch_array(architecture(grid), jldopen("data/fluxes_0.jld2")["Fs"][1+rx*nx:(rx+1)*nx, :, :])
+    τˣ = arch_array(child_architecture(grid), jldopen("data/fluxes_0.jld2")["τx"][1+rx*nx:(rx+1)*nx, :, :])
+    τʸ = arch_array(child_architecture(grid), jldopen("data/fluxes_0.jld2")["τy"][1+rx*nx:(rx+1)*nx, :, :])
+    Qˢ = arch_array(child_architecture(grid), jldopen("data/fluxes_0.jld2")["Qs"][1+rx*nx:(rx+1)*nx, :, :])
+    Fˢ = arch_array(child_architecture(grid), jldopen("data/fluxes_0.jld2")["Fs"][1+rx*nx:(rx+1)*nx, :, :])
 
     μ = 0.001 # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)
@@ -83,7 +84,7 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid)
     v_immersed_bot_bc = FluxBoundaryCondition(v_immersed_quadratic_bottom_drag, discrete_form=true, parameters=μ)
 
     u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_bot_bc)
-    u_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc)
+    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc)
 
     S_top_bc = FluxBoundaryCondition(flux_interpolate_array, discrete_form=true, parameters=Qˢ)
     T_top_bc = FluxBoundaryCondition(flux_interpolate_array, discrete_form=true, parameters=Fˢ)
