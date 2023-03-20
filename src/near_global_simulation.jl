@@ -2,8 +2,13 @@ using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Units
+using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
+using CUDA
+
+smoothing_convective_adjustment = ConvectiveAdjustmentVerticalDiffusivity(convective_κz=10.0, convective_νz=10.0,
+                                                                          background_κz=1.0,  background_νz=1.0)
 
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
@@ -11,7 +16,12 @@ function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
     local_Δ    = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
 
-    return Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ)))
+    return max(Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ))), 10)
+end
+
+@inline function ad_hoc_viscosity(i, j, k, grid, clock, fields, p) 
+    speed = spᶜᶜᶜ(i, j, k, grid, fields)
+    return ifelse(speed > p.sᵐᵃˣ, p.νᶜ, zero(grid))
 end
 
 experiment_depth(exp) = exp == :RealisticOcean ? 5244.5 : 3kilometers
@@ -34,7 +44,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     # grid size
     Nx = Int(360 * resolution)
     Ny = Int(Lφ * resolution)
-    Nz = 120
+    Nz = 100
 
     z_faces = z_faces_function(Nz, Depth)
 
@@ -58,10 +68,13 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     #####
 
     νz = 5e-4
-    κz = 3e-5
+    κz = 3e-5        
 
-    vertical_diffusivity  = VerticalScalarDiffusivity(ν=νz, κ=κz)
-        
+    vertical_diffusivity = VerticalScalarDiffusivity(ν=νz, κ=κz)
+    horizont_diffusivity = HorizontalScalarDiffusivity(ν=ad_hoc_viscosity, discrete_form=true, 
+                                                       loc = (Center, Center, Center),
+                                                       parameters = (sᵐᵃˣ = 2.5, νᶜ = 1000.0))
+    
     tracer_advection   = WENO(underlying_grid)
     momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
                                          divergence_scheme = WENO(), 
@@ -72,7 +85,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
     buoyancy = SeawaterBuoyancy(equation_of_state=TEOS10EquationOfState())
-    closure  = (vertical_diffusivity, boundary_layer_parameterization)
+    closure  = (vertical_diffusivity, boundary_layer_parameterization, horizont_diffusivity)
+    
     coriolis = HydrostaticSphericalCoriolis()
 
     #####
@@ -101,15 +115,14 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Initial condition:
     #####
 
-    initialize_model!(model, Val(experiment))
+    restart = parse(Bool, get(ENV, "RESTART", "1"))
+    initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
     @show model.velocities.u.boundary_conditions
-
-    profile = parse(Bool, get(ENV, "PROFILE", "1"))
     
     # If we are profiling launch only 100 time steps and mark each one with NVTX
-    if profile
+    if parse(Bool, get(ENV, "PROFILE", "1"))
         profiled_time_step!(model, Δt)
         return nothing
     end
@@ -130,9 +143,11 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         w = sim.model.velocities.w
         η = sim.model.free_surface.η
 
-	    @info @sprintf("Time: % 12s, iteration: %d, max(|u|, |v|, |w|): %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wall time: %s", 
-                        prettytime(sim.model.clock.time),
-                        sim.model.clock.iteration, maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η),
+        rk = sim.model.grid.architecture.local_rank
+
+	    @info @sprintf("Rank: %02d, Time: % 12s, it: %d, Δt: %2f, vels: %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wt : %s", 
+                        rk, prettytime(sim.model.clock.time), sim.model.clock.iteration, sim.Δt, 
+                        maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η),
                         prettytime(wall_time))
 
         start_time[1] = time_ns()
@@ -141,9 +156,10 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     end
 
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
-
-    if experiment == :RealisticOcean
-        simulation.callbacks[:update_fluxes] = Callback(update_fluxes, TimeInterval(9days))
+    
+    if experiment == :RealisticOcean 
+        simulation.callbacks[:update_fluxes]   = Callback(update_fluxes, TimeInterval(5days))
+        simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
     end
 
     return simulation

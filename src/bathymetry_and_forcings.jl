@@ -15,7 +15,7 @@ end
 
 @inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) 
 
-function exponential_z_faces(Nz, Depth; h = Nz / 3)
+function exponential_z_faces(Nz, Depth; h = Nz / 4.5)
 
     z_faces = exponential_profile.((1:Nz+1); Lz = Nz, h)
 
@@ -41,7 +41,7 @@ end
 function realistic_bathymetry(grid)
     rx = grid.architecture.local_rank
     nx = size(grid, 1) 
-    return jldopen("data/bathymetry_24.jld2")["bathymetry"][1+rx*nx:(rx+1)*nx, :]
+    return jldopen("data/bathymetry.jld2")["bathymetry"][1+rx*nx:(rx+1)*nx, :]
 end
 
 @inline function cubic_profile(x1, x2, y1, y2, d1, d2)
@@ -99,9 +99,12 @@ end
     return coeff[1] * φ^3 + coeff[2] * φ^2 + coeff[3] * φ + coeff[4]
 end
 
+using Oceananigans.Operators
+
 @inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
 @inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
+@inline spᶜᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(ℑxᶜᵃᵃ(i, j, k, grid, ϕ², Φ.u) + ℑyᵃᶜᵃ(i, j, k, grid, ϕ², Φ.v))
 
 @inline u_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.u[i, j, 1] * spᶠᶜᶜ(i, j, 1, grid, Φ)
 @inline v_quadratic_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1] * spᶜᶠᶜ(i, j, 1, grid, Φ)
@@ -129,40 +132,11 @@ end
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:10 and represents day 0 to day 9
-@inline function flux_interpolate_array(i, j, grid, clock, fields, p)
-    n  = mod(clock.time, 9days) + 1
-    if n == 1
-        return p[i, j, n]
-    end
+# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 5
+@inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
+    time_in_days = clock.time / 1days
+    n  = mod(time_in_days, 5) + 1
     n₁ = Int(floor(n))
-    n₂ = n₁ + 1
+    n₂ = Int(n₁ + 1)    
     return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
 end
-
-# Update fluxes through a Callback every 9days
-@inline function update_fluxes(sim)
-
-    filenum = Int(sim.model.clock.time ÷ 9days)
-    # file    = jldopen("data/fluxes_$(filenum).jld2")
-    file    = jldopen("data/fluxes_0.jld2")
-
-    model = sim.model
-    grid  = model.grid
-
-    u_top = model.velocities.u.boundary_conditions.top.condition 
-    v_top = model.velocities.u.boundary_conditions.top.condition 
-    T_top = model.velocities.u.boundary_conditions.top.condition 
-    S_top = model.velocities.u.boundary_conditions.top.condition 
-
-    rx = grid.architecture.local_rank
-    nx = size(grid, 1) 
-
-    u_top.parameters .= file["τx"][1+rx*nx:(rx+1)*nx, :, :]
-    v_top.parameters .= file["τy"][1+rx*nx:(rx+1)*nx, :, :]
-    T_top.parameters .= file["Qs"][1+rx*nx:(rx+1)*nx, :, :]
-    S_top.parameters .= file["Fs"][1+rx*nx:(rx+1)*nx, :, :]
-
-    return nothing
-end
-
