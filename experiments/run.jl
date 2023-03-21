@@ -20,20 +20,30 @@ Rx = Nranks
 ranks       = (Rx, Ry, 1)
 resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
 experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
-use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
+
+restart = get(ENV, "RESTART", "")
+restart_iteration = "28800"
+
 
 Δt = 10minutes * (3 / resolution)
-stop_time = 200days
+stop_time = 100days
+
+Δt = 35
 
 if rank == 0
-    @info "Scaling test" ranks resolution Δt stop_time experiment use_buffers
+    @info "Scaling test" ranks resolution Δt stop_time experiment restart
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; experiment, use_buffers)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; experiment, restart)
 
 if !isnothing(simulation)
-    OceanScalingTests.set_outputs!(simulation, Val(experiment))
-    run!(simulation)
+    OceanScalingTests.set_outputs!(simulation, Val(experiment), overwrite_existing = true)
+    
+    if isempy(restart)
+        run!(simulation)
+    else
+        run!(simulation, pickup = "restart/RealisticOcean_checkpoint_$(rank)_iteration$(restart_iteration).jld2")
+    end
 
     @info "simulation took $(prettytime(simulation.run_wall_time))"
 end

@@ -1,7 +1,7 @@
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.Units
 
-function set_outputs!(simulation, ::Val{Experiment}; surface_time = 1days, checkpoint_time = 5days) where Experiment
+function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days) where Experiment
 
     model   = simulation.model
 
@@ -22,12 +22,12 @@ function set_outputs!(simulation, ::Val{Experiment}; surface_time = 1days, check
                                                            schedule = TimeInterval(surface_time),
                                                            filename = "$(Experiment)_fields_$rank",
                                                            with_halos = true,
-                                                           overwrite_existing = true)
+                                                           overwrite_existing)
 
-    simulation.output_writers[:checkpointer] = Checkpointer(model,
+    simulation.output_writers[:checkpointer] = Checkpointer(model;
                                                             schedule = TimeInterval(checkpoint_time),
                                                             prefix = "$(Experiment)_checkpoint_$rank",
-                                                            overwrite_existing = true)
+                                                            overwrite_existing)
 end
 
 set_outputs!(simulation, ::Val{:Quiescent}) = nothing

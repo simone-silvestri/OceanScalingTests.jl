@@ -30,7 +30,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  experiment = :Quiescent, 
                                  Depth = experiment_depth(experiment),
                                  latitude = (-75, 75),
-                                 use_buffers = false,
+                                 use_buffers = true,
+                                 restart = "",
                                  z_faces_function = exponential_z_faces,
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity())
 
@@ -115,7 +116,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Initial condition:
     #####
 
-    restart = parse(Bool, get(ENV, "RESTART", "1"))
     initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 

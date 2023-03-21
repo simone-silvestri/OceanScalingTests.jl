@@ -16,9 +16,9 @@ function initialize_model!(model, ::Val{:DoubleDrake}; kw...)
     return nothing
 end
 
-function initialize_model!(model, ::Val{:RealisticOcean}; restart = true)
+function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
     
-    if restart
+    if !isempty(restart)
         return nothing
     end
     
