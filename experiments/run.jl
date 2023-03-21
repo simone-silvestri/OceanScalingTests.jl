@@ -28,12 +28,13 @@ restart = get(ENV, "RESTART", "")
 stop_time = 100days
 
 Δt = 40
+Nz = 100
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment restart
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; experiment, restart)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart)
 
 if !isnothing(simulation)
     OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)

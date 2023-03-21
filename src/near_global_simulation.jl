@@ -33,7 +33,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  use_buffers = true,
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity())
+                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
+                                 Nz = 100)
 
     child_arch = GPU()
 
@@ -45,7 +46,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     # grid size
     Nx = Int(360 * resolution)
     Ny = Int(Lφ * resolution)
-    Nz = 100
 
     z_faces = z_faces_function(Nz, Depth)
 
