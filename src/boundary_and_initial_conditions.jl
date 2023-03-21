@@ -27,15 +27,15 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
 
     rk = grid.architecture.local_rank
 
-    T_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_iteration28800.jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, Hz+1:end-Hz]
-    S_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_iteration28800.jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, Hz+1:end-Hz]
+    T_init = jldopen("restart/initial_conditions_$(rk).jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, Hz+1:end-Hz]
+    S_init = jldopen("restart/initial_conditions_$(rk).jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, Hz+1:end-Hz]
     
     set!(model, T = T_init, S = S_init)
 
     return nothing
 end
 
-function set_boundary_conditions(::Val{:Quiescent}, grid)
+function set_boundary_conditions(::Val{:Quiescent}, grid; kw...)
 
     u_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
     v_bcs = FieldBoundaryConditions(top = FluxBoundaryCondition(0.0))
@@ -45,7 +45,7 @@ function set_boundary_conditions(::Val{:Quiescent}, grid)
     return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
-function set_boundary_conditions(::Val{:DoubleDrake}, grid)
+function set_boundary_conditions(::Val{:DoubleDrake}, grid; kw...)
 
     Ly = grid.Ly
 
@@ -70,13 +70,11 @@ function set_boundary_conditions(::Val{:DoubleDrake}, grid)
     return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
-function set_boundary_conditions(::Val{:RealisticOcean}, grid)
+function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = true)
 
     arch = architecture(grid)
 
     Nx, Ny, _ = size(grid)
-
-    with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
 
     if with_fluxes
         τx = arch_array(arch, zeros(Nx, Ny,   6))

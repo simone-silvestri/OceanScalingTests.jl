@@ -34,7 +34,9 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
-                                 Nz = 100)
+                                 Nz = 100,
+                                 profile = false,
+                                 with_fluxes = true)
 
     child_arch = GPU()
 
@@ -94,7 +96,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Boundary conditions
     #####
 
-    boundary_conditions = set_boundary_conditions(Val(experiment), grid)
+    boundary_conditions = set_boundary_conditions(Val(experiment), grid; with_fluxes)
 
     #####
     ##### Model setup
@@ -122,7 +124,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     @show model.velocities.u.boundary_conditions
     
     # If we are profiling launch only 100 time steps and mark each one with NVTX
-    if parse(Bool, get(ENV, "PROFILE", "1"))
+    if profile
         profiled_time_step!(model, Δt)
         return nothing
     end
@@ -158,7 +160,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
     
     if experiment == :RealisticOcean 
-        if parse(Bool, get(ENV, "WITHFLUXES", "1"))
+        if with_fluxes
             simulation.callbacks[:update_fluxes]   = Callback(update_fluxes, TimeInterval(5days))
         end
         simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
