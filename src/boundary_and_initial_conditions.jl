@@ -76,12 +76,26 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid)
 
     Nx, Ny, _ = size(grid)
 
-    τx = arch_array(arch, zeros(Nx, Ny,   6))
-    τy = arch_array(arch, zeros(Nx, Ny+1, 6))
-    Qs = arch_array(arch, zeros(Nx, Ny,   6))
-    Fs = arch_array(arch, zeros(Nx, Ny,   6))
+    with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
 
-    load_fluxes!(grid, τx, τy, Qs, Fs, 1)
+    if with_fluxes
+        τx = arch_array(arch, zeros(Nx, Ny,   6))
+        τy = arch_array(arch, zeros(Nx, Ny+1, 6))
+        Qs = arch_array(arch, zeros(Nx, Ny,   6))
+        Fs = arch_array(arch, zeros(Nx, Ny,   6))
+
+        load_fluxes!(grid, τx, τy, Qs, Fs, 1)
+
+        u_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τx)    
+        v_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τy)
+        T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
+        S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
+    else
+        u_top_bc = FluxBoundaryCondition(0.0)    
+        v_top_bc = FluxBoundaryCondition(0.0)
+        T_top_bc = FluxBoundaryCondition(0.0)
+        S_top_bc = FluxBoundaryCondition(0.0)
+    end
 
     μ = 0.001 # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)
@@ -100,11 +114,6 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid)
                                                 east = v_immersed_bot_bc,
                                                north = v_immersed_bot_bc,
                                                south = v_immersed_bot_bc)
-
-    u_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τx)    
-    v_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τy)
-    T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
-    S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
 
     T_bcs = FieldBoundaryConditions(top=T_top_bc)
     S_bcs = FieldBoundaryConditions(top=S_top_bc)
