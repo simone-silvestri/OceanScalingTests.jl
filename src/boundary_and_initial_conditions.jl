@@ -24,11 +24,12 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
     
     grid = model.grid
     Hx, Hy, Hz = halo_size(grid)
+    Nx, Ny, Nz = size(grid)
 
     rk = grid.architecture.local_rank
 
-    T_init = jldopen("restart/initial_conditions_$(rk).jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, Hz+1:end-Hz]
-    S_init = jldopen("restart/initial_conditions_$(rk).jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, Hz+1:end-Hz]
+    T_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
+    S_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
     
     set!(model, T = T_init, S = S_init)
 
@@ -49,16 +50,16 @@ function set_boundary_conditions(::Val{:DoubleDrake}, grid; kw...)
 
     Ly = grid.Ly
 
-    S_reference = 35.0 # reference salinity for salinity flux (psu)
+    S_reference = eltype(grid)(35.0) # reference salinity for salinity flux (psu)
     u_coeffs = wind_stress_coefficients(Ly/2)
     S_coeffs = salinity_flux_coefficients(Ly/2, S_reference)
 
-    λ = 5meters / 7days # Pumping velocity of temperature restoring (ms⁻¹)
+    λ = eltype(grid)(5meters / 7days) # Pumping velocity of temperature restoring (ms⁻¹)
     u_top_bc = FluxBoundaryCondition(surface_stress_x,      discrete_form=true, parameters=u_coeffs)
     S_top_bc = FluxBoundaryCondition(surface_salinity_flux, discrete_form=true, parameters=S_coeffs)
     T_top_bc = FluxBoundaryCondition(T_relaxation,          discrete_form=true, parameters=λ)
 
-    μ = 0.003 # linear drag coefficient (ms⁻¹)
+    μ = eltype(grid)(0.003) # linear drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_linear_bottom_drag, discrete_form=true, parameters=μ)
     v_bot_bc = FluxBoundaryCondition(v_linear_bottom_drag, discrete_form=true, parameters=μ)
 
@@ -77,10 +78,10 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
     Nx, Ny, _ = size(grid)
 
     if with_fluxes
-        τx = arch_array(arch, zeros(Nx, Ny,   6))
-        τy = arch_array(arch, zeros(Nx, Ny+1, 6))
-        Qs = arch_array(arch, zeros(Nx, Ny,   6))
-        Fs = arch_array(arch, zeros(Nx, Ny,   6))
+        τx = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
+        τy = arch_array(arch, zeros(eltype(grid), Nx, Ny+1, 6))
+        Qs = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
+        Fs = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
 
         load_fluxes!(grid, τx, τy, Qs, Fs, 1)
 
@@ -89,13 +90,13 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
         T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
         S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
     else
-        u_top_bc = FluxBoundaryCondition(0.0)    
-        v_top_bc = FluxBoundaryCondition(0.0)
-        T_top_bc = FluxBoundaryCondition(0.0)
-        S_top_bc = FluxBoundaryCondition(0.0)
+        u_top_bc = FluxBoundaryCondition(zero(grid))    
+        v_top_bc = FluxBoundaryCondition(zero(grid))
+        T_top_bc = FluxBoundaryCondition(zero(grid))
+        S_top_bc = FluxBoundaryCondition(zero(grid))
     end
 
-    μ = 0.001 # Quadratic drag coefficient (ms⁻¹)
+    μ = eltype(grid)(0.001) # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=μ)
 
