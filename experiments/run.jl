@@ -25,13 +25,10 @@ experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
 with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
 profile     = parse(Bool, get(ENV, "PROFILE", "1"))
 restart     = get(ENV, "RESTART", "")
-
+Nz          = parse(Int, get(ENV, "NZ", "120"))
 
 Δt = 10minutes * (3 / resolution)
 stop_time = 100days
-
-Δt = 40
-Nz = 100
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
