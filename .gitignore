@@ -1,0 +1,6 @@
+*.out
+*.jld2
+*.nc
+*.txt
+launch.sh
+*.qdrep

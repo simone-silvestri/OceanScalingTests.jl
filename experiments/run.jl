@@ -6,6 +6,8 @@ using NVTX
 using MPI
 using JLD2
 
+using Oceananigans.Models.HydrostaticFreeSurfaceModels
+
 MPI.Init()
 
 comm   = MPI.COMM_WORLD
@@ -16,23 +18,36 @@ Ry = 1
 Rx = Nranks
 
 ranks       = (Rx, Ry, 1)
+
+# Enviromental variables
 resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
-experiment  = Symbol(get(ENV, "EXPERIMENT", "Quiescent"))
-use_buffers = parse(Bool, get(ENV, "USEBUFFERS", "1"))
+experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
+with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
+profile     = parse(Bool, get(ENV, "PROFILE", "1"))
+restart     = get(ENV, "RESTART", "")
+Nz          = parse(Int, get(ENV, "NZ", "120"))
 
 Δt = 10minutes * (3 / resolution)
-stop_iteration = 30000
+stop_time = 100days
 
 if rank == 0
-    @info "Scaling test" ranks resolution Δt stop_iteration experiment use_buffers
+    @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_iteration; experiment, use_buffers)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart, profile, with_fluxes)
 
-OceanScalingTests.set_outputs!(simulation, Val(experiment))
+if !isnothing(simulation)
+    OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
+    
+    if isempty(restart)
+        run!(simulation)
+    else
+        pickup_file =  "restart/RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+        @info "restarting from $(pickup_file)"
+        run!(simulation, pickup = pickup_file)
+    end
 
-run!(simulation)
+    @info "simulation took $(prettytime(simulation.run_wall_time))"
+end
 
-@info "simulation took $(prettytime(simulation.run_wall_time))"
-
-MPI.Finalize()
+# MPI.Finalize()
