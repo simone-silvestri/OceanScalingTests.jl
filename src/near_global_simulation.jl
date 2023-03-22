@@ -147,7 +147,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
         rk = sim.model.grid.architecture.local_rank
 
-	    @info @sprintf("Rank: %02d, Time: % 12s, it: %d, Δt: %2f, vels: %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wt : %s", 
+	    @info @sprintf("Rank: %02d, Time: % 12s, it: %d, Δt: %.2f, vels: %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wt : %s", 
                         rk, prettytime(sim.model.clock.time), sim.model.clock.iteration, sim.Δt, 
                         maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η),
                         prettytime(wall_time))
