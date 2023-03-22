@@ -20,6 +20,7 @@ export OMPI_MCA_osc=^ucx
 export OMPI_MCA_btl_openib_allow_ib=true
 
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
+export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
 export JULIA_NVTX_CALLBACKS=gc
 
 cat > launch.sh << EoF_s

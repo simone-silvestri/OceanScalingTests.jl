@@ -4,3 +4,6 @@ abi = "OpenMPI"
 binary = "system"
 libmpi = "libmpi"
 mpiexec = "srun"
+
+[CUDA_Runtime_jll]
+version = "local"
