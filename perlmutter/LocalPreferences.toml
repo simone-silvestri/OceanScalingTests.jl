@@ -3,7 +3,8 @@ _format = "1.0"
 abi = "MPICH"
 binary = "system"
 libmpi = "libmpi_cray"
-mpiexec = "mpiexec"
+mpiexec = "srun"
+iscray = "true"
 
 [CUDA_Runtime_jll]
 version = "local"

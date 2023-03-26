@@ -10,7 +10,7 @@
 #SBATCH --gpu-bind=none
 
 module load cray-mpich
-module load openmpi/3.1.6-cuda-pmi-ucx-slurm-jhklron
+# module load openmpi/3.1.6-cuda-pmcx-slurm-jhklron
 
 export SBATCH_ACCOUNT=m1759
 export SALLOC_ACCOUNT=m1759
