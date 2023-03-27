@@ -26,11 +26,20 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
     Hx, Hy, Hz = halo_size(grid)
     Nx, Ny, Nz = size(grid)
 
+    T_init = zeros(size(grid)...)
+    S_init = zeros(size(grid)...)
+    
     rk = grid.architecture.local_rank
 
-    T_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
-    S_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
-    
+    irange = UnitRange(1 + rx * nx, (rx + 1) * nx)
+
+    for k in 1:size(grid, 3)
+       if rk == 1
+	  @info "loading level $k"
+       end
+       T_init[:, :, k:k] .= jldopen("restart/T12y_at$(k).jld2")["T"][irange, :, 1:1]
+       S_init[:, :, k:k] .= jldopen("restart/S12y_at$(k).jld2")["S"][irange, :, 1:1]
+    end
     set!(model, T = T_init, S = S_init)
 
     return nothing

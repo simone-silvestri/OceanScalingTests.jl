@@ -36,7 +36,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
                                  Nz = 100,
                                  profile = false,
-                                 with_fluxes = true)
+                                 with_fluxes = true
+				 precision = Float64)
 
     child_arch = GPU()
 
@@ -52,7 +53,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     z_faces = z_faces_function(Nz, Depth)
 
     # A spherical domain
-    @show underlying_grid = LatitudeLongitudeGrid(arch,
+    @show underlying_grid = LatitudeLongitudeGrid(arch, precision; 
                                                   size = (Nx, Ny, Nz),
                                                   longitude = (-180, 180),
                                                   latitude = latitude,
@@ -73,21 +74,21 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     νz = 5e-4
     κz = 3e-5        
 
-    vertical_diffusivity = VerticalScalarDiffusivity(ν=νz, κ=κz)
-    horizont_diffusivity = HorizontalScalarDiffusivity(ν=ad_hoc_viscosity, discrete_form=true, 
+    vertical_diffusivity = VerticalScalarDiffusivity(precision; ν=νz, κ=κz)
+    horizont_diffusivity = HorizontalScalarDiffusivity(precision; ν=ad_hoc_viscosity, discrete_form=true, 
                                                        loc = (Center, Center, Center),
                                                        parameters = (sᵐᵃˣ = 2.5, νᶜ = 1000.0))
     
     tracer_advection   = WENO(underlying_grid)
-    momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
-                                         divergence_scheme = WENO(), 
+    momentum_advection = VectorInvariant(vorticity_scheme  = WENO(precision), 
+                                         divergence_scheme = WENO(precision), 
                                          vertical_scheme   = WENO(underlying_grid)) 
 
     free_surface = SplitExplicitFreeSurface(; substeps = barotropic_substeps(Δt, grid, g_Earth))
 
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
-    buoyancy = SeawaterBuoyancy(equation_of_state=TEOS10EquationOfState())
+    buoyancy = SeawaterBuoyancy(precision; equation_of_state=TEOS10EquationOfState(precision))
     closure  = (vertical_diffusivity, boundary_layer_parameterization, horizont_diffusivity)
     
     coriolis = HydrostaticSphericalCoriolis()
@@ -184,4 +185,4 @@ function profiled_time_step!(model, Δt; gc_steps = 10, profiled_steps = 10)
         end
         GC.gc()
     end
-end
+end`

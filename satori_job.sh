@@ -5,14 +5,14 @@
 #SBATCH --ntasks-per-core=1
 #SBATCH --threads-per-core=1
 #SBATCH --mem=1TB
-#SBATCH --time 06:00:00
-#SBATCH --reservation=gpu-aware-mpi-testing
-#SBATCH --partition=reservation7 
-#SBATCH --qos=reservation7 
+#SBATCH --time 24:00:00
+##SBATCH --reservation=gpu-aware-mpi-testing
+##SBATCH --partition=reservation7 
+##SBATCH --qos=reservation7 
 
 module purge all
 module add spack
-module add cuda/10.1
+module add cuda/11.4
 module load openmpi/3.1.6-cuda-pmi-ucx-slurm-jhklron
 
 export OMPI_MCA_pml=^ucx
@@ -29,7 +29,8 @@ exec \$*
 EoF_s
 chmod +x launch.sh
 
+##nsys profile --trace=nvtx,cuda,mpi --output=report_new  
 
 cp satori/* .
-nsys --profile --trace=nvtx,cuda,mpi --output=report_new srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project= experiments/run.jl ${RESOLUTION:=3}
+srun --mpi=pmi2 ./launch.sh julia --check-bounds=no --project experiments/run.jl ${RESOLUTION:=3}
 rm *.toml

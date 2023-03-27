@@ -169,7 +169,7 @@ function set_field!(f::YField, a)
     set!(f, d)
 end
 
-function read_and_interpolate_quarter_flux(name, iterations; max_val = nothing, location = (Center, Center, Center))
+function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny; max_val = nothing, location = (Center, Center, Center))
 
     grid_cs510 = LatitudeLongitudeGrid(arch, size = (1440, 720, 1), latitude = (-90, 90), longitude = (-180, 180), z = (0, 1)) 
     cs_field = Field{location...}(grid_cs510)
@@ -177,9 +177,9 @@ function read_and_interpolate_quarter_flux(name, iterations; max_val = nothing, 
     Nj = 4
 
     interp = if location[2] == Face
-        zeros(17280, 7201, 6)
+        zeros(Nx, Ny+1, 6)
     else
-        zeros(17280, 7200, 6)
+        zeros(Nx, Ny,   6)
     end
 
     for j in 1:Nj
@@ -188,9 +188,9 @@ function read_and_interpolate_quarter_flux(name, iterations; max_val = nothing, 
 
         latitude = (- 75 + Δφ * (j - 1), - 75 + Δφ * j)
         
-        Nφ = Int(7200 / Nj)
+        Nφ = Int(Ny / Nj)
                     
-        grid_48th = LatitudeLongitudeGrid(arch; size = (17280, Nφ, 1), latitude, longitude = (-180, 180), z = (0, 1)) 
+        grid_48th = LatitudeLongitudeGrid(arch; size = (Nx, Nφ, 1), latitude, longitude = (-180, 180), z = (0, 1)) 
         my_field  = Field{location...}(grid_48th)
         my_tmp2   = Field{location...}(grid_48th)
 
@@ -229,29 +229,34 @@ function read_and_interpolate_quarter_flux(name, iterations; max_val = nothing, 
             tmp_interp[:, :, idx] .= Array(interior(my_field))
         end
 
-        jrange = UnitRange(1 + (j - 1) * 1800, size(my_field, 2) + (j - 1) * 1800)
+        jrange = UnitRange(1 + (j - 1) * Nφ, size(my_field, 2) + (j - 1) * Nφ)
         interp[:, jrange, :] .= tmp_interp
 
     end
     return interp
 end
 
-function transpose_flux!(var, tmp)
-    tmp .= var[8641:end, :, :]
-    var[8641:end, :, :] .= var[1:8640, :, :]
-    var[1:8640, :, :]   .= tmp
+function transpose_flux!(var, tmp, Nx)
+    mid = Int(Nx / 2)
+    tmp .= var[mid+1:end, :, :]
+    var[mid+1:end, :, :] .= var[1:mid, :, :]
+    var[1:mid, :, :]   .= tmp
 end
 
 Nj = 10
-tmp  = zeros(8640, 7200, 6)
-tmpy = zeros(8640, 7201, 6)
+resolution = 24
+
+Nx = Int(resolution * 360)
+Ny = Int(resolution * 150)
+tmp  = zeros(Int(Nx/2), Ny, 6)
+tmpy = zeros(Int(Nx/2), Ny, 6)
 
 for (idx, iterations) in enumerate(it_collection[1:10])
 
-    τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations; max_val = 1e8, location = (Face, Center, Center))
-    τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations; max_val = 1e8, location = (Center, Face, Center))
-    Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations; max_val = 1e8)
-    Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations; max_val = 1e8)
+    τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations, Nx, Ny; max_val = 1e8, location = (Face, Center, Center))
+    τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations, Nx, Ny; max_val = 1e8, location = (Center, Face, Center))
+    Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations, Nx, Ny; max_val = 1e8)
+    Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations, Nx, Ny; max_val = 1e8)
 
     @info "Correcting fluxes"
     Qs .*= (1 / 1000 / 3991)
@@ -261,10 +266,10 @@ for (idx, iterations) in enumerate(it_collection[1:10])
     τx .= -τx ./ 1000
     τy .= -τy ./ 1000
 
-    transpose_flux!(τx, tmp)
-    transpose_flux!(Qs, tmp)
-    transpose_flux!(Fs, tmp)
-    transpose_flux!(τy, tmpy)
+    transpose_flux!(τx, tmp,  Nx)
+    transpose_flux!(Qs, tmp,  Nx)
+    transpose_flux!(Fs, tmp,  Nx)
+    transpose_flux!(τy, tmpy, Nx)
 
     @info "saving down fluxes $idx"
     jldsave("fluxes_$(idx).jld2", τx = τx, τy = τy, Qs = Qs, Fs = Fs)
