@@ -10,10 +10,10 @@
 #SBATCH --gpu-bind=none
 
 module load cray-mpich
-# module load openmpi/3.1.6-cuda-pmcx-slurm-jhklron
 
-export SBATCH_ACCOUNT=m1759
-export SALLOC_ACCOUNT=m1759
+export SBATCH_ACCOUNT=m4367
+export SALLOC_ACCOUNT=m4367
+export PATH=${HOME}/julia-1.8.5/bin:${PATH}
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
 export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/perlmutter"
 
@@ -27,6 +27,4 @@ exec \$*
 EoF_s
 chmod +x launch.sh
 
-cp perlmutter/* .
 srun ./launch.sh julia --check-bounds=no --project experiments/run.jl ${RESOLUTION:=3}
-rm *.toml
