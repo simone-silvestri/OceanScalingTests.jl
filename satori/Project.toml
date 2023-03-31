@@ -1,3 +1,4 @@
 [extras]
 MPIPreferences = "3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"
 CUDA_Runtime_jll = "76a88914-d11a-5bdc-97e0-2f5a05c973a2"
+GPUCompiler = "61eb1bfa-7361-4325-ad38-22787b887f55"

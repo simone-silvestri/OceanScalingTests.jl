@@ -87,11 +87,9 @@ version = "0.4.0+2"
 
 [[deps.CUDA_Runtime_Discovery]]
 deps = ["Libdl"]
-git-tree-sha1 = "e17ef786b9ed0da47e59d08ffd470eadb535aba3"
-repo-rev = "vc/nvhpc"
-repo-url = "https://github.com/JuliaGPU/CUDA_Runtime_Discovery.jl.git"
+git-tree-sha1 = "d6b227a1cfa63ae89cb969157c6789e36b7c9624"
 uuid = "1af6417a-86b4-443c-805f-a4643ffb695f"
-version = "0.1.1"
+version = "0.1.2"
 
 [[deps.CUDA_Runtime_jll]]
 deps = ["Artifacts", "CUDA_Driver_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
@@ -241,8 +239,10 @@ uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
 version = "0.1.4"
 
 [[deps.GPUCompiler]]
-deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "TimerOutputs", "UUIDs"]
-git-tree-sha1 = "fd6431121f31fed05a5386ac88b9bb3f97fdfa69"
+deps = ["ExprTools", "InteractiveUtils", "LLVM", "Libdl", "Logging", "Preferences", "Scratch", "Serialization", "TOML", "TimerOutputs", "UUIDs"]
+git-tree-sha1 = "e317331b65c552c56c63de50f1dd56cb8930f8b9"
+repo-rev = "vc/diskcache2"
+repo-url = "https://github.com/JuliaGPU/GPUCompiler.jl.git"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
 version = "0.18.0"
 
@@ -629,6 +629,12 @@ version = "1.4.0"
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
+
+[[deps.Scratch]]
+deps = ["Dates"]
+git-tree-sha1 = "30449ee12237627992a99d5e30ae63e4d78cd24a"
+uuid = "6c6a2e73-6563-6170-7368-637461726353"
+version = "1.2.0"
 
 [[deps.SeawaterPolynomials]]
 git-tree-sha1 = "958ba75b90c7c8a117d041d33184134201cf8c0f"
