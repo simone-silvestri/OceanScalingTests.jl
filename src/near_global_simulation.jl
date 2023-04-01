@@ -121,8 +121,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
-    @show model.velocities.u.boundary_conditions
-    
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
         profiled_time_step!(model, Δt)
