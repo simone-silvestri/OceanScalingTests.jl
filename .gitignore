@@ -4,3 +4,4 @@
 *.txt
 launch.sh
 *.qdrep
+*.nsys-rep
