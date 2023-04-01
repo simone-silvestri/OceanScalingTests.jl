@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH -C gpu
 #SBATCH -q regular
-#SBATCH --ntasks-per-node=4
 #SBATCH --time=00:30:00
 #SBATCH --account=m4367
 #SBATCH --gpus-per-node=4
@@ -24,9 +23,10 @@ export JULIA_CUDA_MEMORY_POOL=none
 export SLURM_CPU_BIND="cores"
 export CRAY_ACCEL_TARGET="nvidia80"
 
-srun --ntasks-per-node 1 dcgmi profile --pause
+srun --ntasks-per-node=1 dcgmi profile --pause
 
-nsys profile --trace=cuda,mpi,nvtx --mpi-impl=mpich --gpu-metrics-device=all \
-    srun julia --check-bounds=no --project experiments/run.jl ${RESOLUTION:=3}
+srun --ntasks-per-node=4 \
+    nsys profile --trace=cuda,mpi,nvtx --mpi-impl=mpich --gpu-metrics-device=all \
+    julia --check-bounds=no --project experiments/run.jl ${RESOLUTION:=3}
 
-srun --ntasks-per-node 1 dcgmi profile --resume
+srun --ntasks-per-node=1 dcgmi profile --resume
