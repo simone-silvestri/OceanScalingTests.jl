@@ -3,7 +3,7 @@
 #SBATCH -q regular
 #SBATCH --ntasks-per-node=4
 #SBATCH --time=06:00:00
-#SBATCH --account=m1759
+#SBATCH --account=m4367
 #SBATCH --gpus-per-node=4
 #SBATCH -c 32
 #SBATCH --gpus-per-task=1
