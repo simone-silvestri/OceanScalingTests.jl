@@ -78,10 +78,10 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
     Nx, Ny, _ = size(grid)
 
     if with_fluxes
-        τx = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
-        τy = arch_array(arch, zeros(eltype(grid), Nx, Ny+1, 6))
-        Qs = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
-        Fs = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
+        τx = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny  ))
+        τy = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny+1))
+        Qs = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny  ))
+        Fs = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny  ))
 
         load_fluxes!(grid, τx, τy, Qs, Fs, 1)
 
@@ -124,7 +124,7 @@ end
 
 function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     rx = grid.architecture.local_rank
-    nx = size(grid, 1) 
+    nx, ny, _ = size(grid) 
 
     irange = UnitRange(1 + rx * nx, (rx + 1) * nx)
 
@@ -137,10 +137,22 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     # Garbage collect!!
     GC.gc()
 
-    τxin = Array(file["τx"][irange, :, :])
-    τyin = Array(file["τy"][irange, :, :])
-    Qsin = Array(file["Qs"][irange, :, :])
-    Fsin = Array(file["Fs"][irange, :, :])
+    τxtmp = Array(file["τx"][irange, :, :])
+    τytmp = Array(file["τy"][irange, :, :])
+    Qstmp = Array(file["Qs"][irange, :, :])
+    Fstmp = Array(file["Fs"][irange, :, :])
+
+    τxin = zeros(6, nx, ny)
+    τyin = zeros(6, nx, ny+1)
+    Qsin = zeros(6, nx, ny)
+    Fsin = zeros(6, nx, ny)
+
+    for t in 1:6
+      τxin[t, :, :] .= τxtmp[:, :, t]  
+      τyin[t, :, :] .= τytmp[:, :, t]
+      Qsin[t, :, :] .= Qstmp[:, :, t]
+      Fsin[t, :, :] .= Fstmp[:, :, t]
+    end
 
     copyto!(τx, τxin)
     copyto!(τy, τyin)
