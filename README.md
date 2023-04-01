@@ -13,7 +13,12 @@
 
 ## Packages:
 - `Oceananigans.jl.git#ss-vc/overlay`
-- `CUDA.jl.git#vc/ka_transition`
+
+## Setup
+
+- Julia 1.9.0-rc2
+- Instantiate Julia environment `JULIA_LOAD_PATH=:$(pwd)/perlmutter julia --project=. -e "import Pkg; Pkg.instantiate()"`
+- Warmup GPUCompiler cache `JULIA_LOAD_PATH=:$(pwd)/perlmutter julia --project=. experiments/run.jl`
 
 ## Example
 
@@ -21,4 +26,3 @@ vorticity (left) and free surface (right) for the "DoubleDrake" experiment at re
 
 
 https://user-images.githubusercontent.com/33547697/219111104-666e1215-933d-4d31-9628-57ed87b335e4.mp4
-

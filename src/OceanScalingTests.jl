@@ -24,4 +24,11 @@ include("boundary_and_initial_conditions.jl")
 include("near_global_simulation.jl")
 include("simulation_outputs.jl")
 
+# include("../precompile/precompile_Oceananigans.jl")
+import Oceananigans: OffsetArrays
+import Oceananigans.Architectures: KernelAbstractions
+import SeawaterPolynomials
+include("../precompile/precompile_Oceananigans.jl")
+include("../precompile/precompile_OceanScalingTests.jl")
+
 end # module OceanScalingTests
