@@ -24,12 +24,9 @@ export JULIA_CUDA_MEMORY_POOL=none
 export SLURM_CPU_BIND="cores"
 export CRAY_ACCEL_TARGET="nvidia80"
 
-cat > launch.sh << EoF_s
-#! /bin/sh
-export CUDA_VISIBLE_DEVICES=0,1,2,3
-exec \$*
-EoF_s
-chmod +x launch.sh
+srun --ntasks-per-node 1 dcgmi profile --pause
 
-nsys profile --trace=cuda,mpi,nvtx --mpi-impl=mpich \
-    srun ./launch.sh julia --check-bounds=no --project experiments/run.jl ${RESOLUTION:=3}
+nsys profile --trace=cuda,mpi,nvtx --mpi-impl=mpich --gpu-metrics-device=all \
+    srun julia --check-bounds=no --project experiments/run.jl ${RESOLUTION:=3}
+
+srun --ntasks-per-node 1 dcgmi profile --resume
