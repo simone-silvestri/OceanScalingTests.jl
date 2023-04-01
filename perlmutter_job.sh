@@ -2,7 +2,7 @@
 #SBATCH -C gpu
 #SBATCH -q regular
 #SBATCH --ntasks-per-node=4
-#SBATCH --time=06:00:00
+#SBATCH --time=00:30:00
 #SBATCH --account=m4367
 #SBATCH --gpus-per-node=4
 #SBATCH -c 32
@@ -19,6 +19,7 @@ export PATH=${COMMON}/julia-1.9.0-rc2/bin:${PATH}
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
 export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/perlmutter"
 export JULIA_DEPOT_PATH=":${COMMON}/depot"
+export JULIA_CUDA_MEMORY_POOL=none
 
 export SLURM_CPU_BIND="cores"
 export CRAY_ACCEL_TARGET="nvidia80"
