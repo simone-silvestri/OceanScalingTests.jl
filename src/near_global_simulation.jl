@@ -36,7 +36,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
                                  Nz = 100,
                                  profile = false,
-                                 with_fluxes = true
+                                 with_fluxes = true,
 				 precision = Float64)
 
     child_arch = GPU()
@@ -122,8 +122,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
-    @show model.velocities.u.boundary_conditions
-    
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
         profiled_time_step!(model, Δt)
@@ -158,7 +156,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         return nothing
     end
 
-    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
     
     if experiment == :RealisticOcean 
         if with_fluxes
@@ -170,7 +168,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     return simulation
 end
 
-function profiled_time_step!(model, Δt; gc_steps = 10, profiled_steps = 10)
+function profiled_time_step!(model, Δt; gc_steps = 100, profiled_steps = 10)
     # initial time steps
     for step in 1:10
         time_step!(model, Δt)
@@ -181,8 +179,10 @@ function profiled_time_step!(model, Δt; gc_steps = 10, profiled_steps = 10)
         for nogc in 1:profiled_steps
             NVTX.@range "one time step" begin
                 time_step!(model, Δt)
+		#CUDA.synchronize()
+		#MPI.Barrier(MPI.COMM_WORLD)
             end
         end
-        GC.gc()
+	Threads.@spawn GC.gc()
     end
-end`
+end

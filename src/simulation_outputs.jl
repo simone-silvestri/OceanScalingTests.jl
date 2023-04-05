@@ -30,4 +30,16 @@ function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, 
                                                             overwrite_existing)
 end
 
+function set_checkpoints!(simulation, ::Val{Experiment}; overwrite_existing = true, checkpoint_time = 5days) where Experiment
+
+    model   = simulation.model
+
+    rank = model.grid.architecture.local_rank
+
+    simulation.output_writers[:checkpointer] = Checkpointer(model;
+                                                            schedule = TimeInterval(checkpoint_time),
+                                                            prefix = "$(Experiment)_checkpoint_$rank",
+                                                            overwrite_existing)
+end
+
 set_outputs!(simulation, ::Val{:Quiescent}) = nothing
