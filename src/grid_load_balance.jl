@@ -117,4 +117,18 @@ function redistribute_size_to_fulfill_memory_limitation!(l, m = 700)
             l[i⁻] += mod(Δ, n)
         end
     end
+    while any(l .< 20)
+        x⁺, i⁺ = findmax(l)
+        x⁻, i⁻ = findmin(l)
+        if x⁻ == 19
+            l[i⁻] += 1
+            l[i⁺] -= 1
+        else
+            Δ = 20 - l[i⁻]
+            q = Δ ÷ n
+            l .-= q
+            l[i⁺] -= mod(Δ, n)
+            l[i⁻] += Δ
+        end
+    end
 end

@@ -65,7 +65,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     vertical_diffusivity = VerticalScalarDiffusivity(ν=νz, κ=κz)
     horizont_diffusivity = HorizontalScalarDiffusivity(ν=ad_hoc_viscosity, discrete_form=true, 
                                                        loc = (Center, Center, Center),
-                                                       parameters = (sᵐᵃˣ = 2.5, νᶜ = 1000.0))
+                                                       parameters = (sᵐᵃˣ = 4.0, νᶜ = 1000.0))
     
     tracer_advection   = WENO(grid.underlying_grid)
     momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
