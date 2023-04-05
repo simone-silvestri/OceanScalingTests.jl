@@ -2,6 +2,7 @@ using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Units
+using Oceananigans.Architectures: device
 using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
@@ -36,7 +37,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
                                  Nz = 100,
                                  profile = false,
-                                 with_fluxes = true)
+                                 with_fluxes = true,
+                                 loadbalance = true)
 
     child_arch = GPU()
 
@@ -46,25 +48,12 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     Lφ = latitude[2] - latitude[1]
 
     # grid size
-    Nx = Int(360 * resolution)
+    Nx = Int(360 * resolution) 
     Ny = Int(Lφ * resolution)
 
     z_faces = z_faces_function(Nz, Depth)
 
-    # A spherical domain
-    @show underlying_grid = LatitudeLongitudeGrid(arch,
-                                                  size = (Nx, Ny, Nz),
-                                                  longitude = (-180, 180),
-                                                  latitude = latitude,
-                                                  halo = (5, 5, 5),
-                                                  z = z_faces,
-                                                  precompute_metrics = true)
-
-    grid = experiment == :RealisticOcean ? 
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid))) :
-           experiment == :DoubleDrake ?
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
-           underlying_grid
+    grid = load_balanced_grid(arch, (Nx, Ny, Nz), latitude, z_faces, Val(loadbalance), Val(experiment))
 
     #####
     ##### Physics setup and numerical methods
@@ -78,10 +67,10 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                                        loc = (Center, Center, Center),
                                                        parameters = (sᵐᵃˣ = 2.5, νᶜ = 1000.0))
     
-    tracer_advection   = WENO(underlying_grid)
+    tracer_advection   = WENO(grid.underlying_grid)
     momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
                                          divergence_scheme = WENO(), 
-                                         vertical_scheme   = WENO(underlying_grid)) 
+                                         vertical_scheme   = WENO(grid.underlying_grid)) 
 
     free_surface = SplitExplicitFreeSurface(; substeps = barotropic_substeps(Δt, grid, g_Earth))
 
@@ -125,7 +114,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
-        profiled_time_step!(model, Δt)
+        profiled_time_steps!(model, Δt)
         return nothing
     end
 
@@ -161,15 +150,15 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     
     if experiment == :RealisticOcean 
         if with_fluxes
-            simulation.callbacks[:update_fluxes]   = Callback(update_fluxes, TimeInterval(5days))
+            simulation.callbacks[:update_fluxes] = Callback(update_fluxes, TimeInterval(5days))
         end
-        simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
+        simulation.callbacks[:garbage_collect] = Callback((sim) -> Threads.@spawn GC.gc(), IterationInterval(50))
     end
 
     return simulation
 end
 
-function profiled_time_step!(model, Δt; gc_steps = 10, profiled_steps = 10)
+function profiled_time_steps!(model, Δt; gc_steps = 10, profiled_steps = 10)
     # initial time steps
     for step in 1:10
         time_step!(model, Δt)

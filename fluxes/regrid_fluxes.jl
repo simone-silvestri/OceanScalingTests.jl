@@ -8,7 +8,6 @@ using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Statistics: dot
 using DataDeps
-# using GLMakie
 using NetCDF
 using JLD2 
 
@@ -169,12 +168,13 @@ function set_field!(f::YField, a)
     set!(f, d)
 end
 
-function read_and_interpolate_quarter_flux(name, iterations; max_val = nothing, location = (Center, Center, Center))
+function read_and_interpolate_quarter_flux(name, iterations; 
+                                           max_val = nothing, 
+                                           location = (Center, Center, Center),
+                                           smoothing_passes = 5)
 
     grid_cs510 = LatitudeLongitudeGrid(arch, size = (1440, 720, 1), latitude = (-90, 90), longitude = (-180, 180), z = (0, 1)) 
     cs_field = Field{location...}(grid_cs510)
-    
-    Nj = 4
 
     interp = if location[2] == Face
         zeros(17280, 7201, 6)
@@ -182,57 +182,47 @@ function read_and_interpolate_quarter_flux(name, iterations; max_val = nothing, 
         zeros(17280, 7200, 6)
     end
 
-    for j in 1:Nj
-
-        Δφ = 150 / Nj
-
-        latitude = (- 75 + Δφ * (j - 1), - 75 + Δφ * j)
+    latitude = (-75, 75) 
         
-        Nφ = Int(7200 / Nj)
+    Nφ = 7200 
                     
-        grid_48th = LatitudeLongitudeGrid(arch; size = (17280, Nφ, 1), latitude, longitude = (-180, 180), z = (0, 1)) 
-        my_field  = Field{location...}(grid_48th)
-        my_tmp2   = Field{location...}(grid_48th)
+    grid_48th = LatitudeLongitudeGrid(arch; size = (17280, Nφ, 1), latitude, longitude = (-180, 180), z = (0, 1)) 
+    my_field  = Field{location...}(grid_48th)
+    my_tmp2   = Field{location...}(grid_48th)
 
-        tmp_interp = zeros(size(my_field)[1:2]..., length(iterations))
+    for (idx, iter) in enumerate(iterations)
 
-        for (idx, iter) in enumerate(iterations)
+        file = "$(name).1440x720.$(iter).nc"
 
-            file = "$(name).1440x720.$(iter).nc"
-
-            # Downloading files
-            url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/$(name)_daily.nc/$(file)"
-            cmd = `wget --http-user=ssilvestri --http-passwd=ZZjQeLy7oIHwvqMWvM8y $(url)`
+        # Downloading files
+        url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/$(name)_daily.nc/$(file)"
+        cmd = `wget --http-user=ssilvestri --http-passwd=ZZjQeLy7oIHwvqMWvM8y $(url)`
                             
-            !isfile(file) && run(cmd)
+        !isfile(file) && run(cmd)
 
-            @info "interpolating file $file"
+        @info "interpolating file $file"
 
-            set_field!(cs_field, ncread(file, name))
-            fix_max_val!(cs_field, max_val)
+        set_field!(cs_field, ncread(file, name))
+        fix_max_val!(cs_field, max_val)
 
-            fill_halo_regions!(cs_field)
+        fill_halo_regions!(cs_field)
 
-            for step in 1:50
-                propagate_field!(cs_field)
-            end
-
-            horizontal_interpolate!(my_field, cs_field)
-
-            fill_halo_regions!(my_field)
-            
-            for step in 1:5
-                horizontal_filter!(my_tmp2, my_field)
-                horizontal_filter!(my_field, my_tmp2)
-            end
-
-            tmp_interp[:, :, idx] .= Array(interior(my_field))
+        for step in 1:50
+            propagate_field!(cs_field)
         end
 
-        jrange = UnitRange(1 + (j - 1) * 1800, size(my_field, 2) + (j - 1) * 1800)
-        interp[:, jrange, :] .= tmp_interp
+        horizontal_interpolate!(my_field, cs_field)
 
+        fill_halo_regions!(my_field)
+            
+        for step in 1:smoothing_passes
+            horizontal_filter!(my_tmp2, my_field)
+            horizontal_filter!(my_field, my_tmp2)
+        end
+
+        interp[:, :, idx] .= Array(interior(my_field))
     end
+
     return interp
 end
 
@@ -246,10 +236,10 @@ Nj = 10
 tmp  = zeros(8640, 7200, 6)
 tmpy = zeros(8640, 7201, 6)
 
-for (idx, iterations) in enumerate(it_collection[1:10])
+for (idx, iterations) in enumerate(it_collection[1:40])
 
-    τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations; max_val = 1e8, location = (Face, Center, Center))
-    τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations; max_val = 1e8, location = (Center, Face, Center))
+    τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations; smoothing_passes = 15, max_val = 1e8, location = (Face, Center, Center))
+    τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations; smoothing_passes = 15, max_val = 1e8, location = (Center, Face, Center))
     Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations; max_val = 1e8)
     Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations; max_val = 1e8)
 

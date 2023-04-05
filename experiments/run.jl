@@ -20,21 +20,24 @@ Rx = Nranks
 ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
-resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
-experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
+resolution  = parse(Int,  get(ENV, "RESOLUTION", "3"))
+experiment  = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
 with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
-profile     = parse(Bool, get(ENV, "PROFILE", "1"))
-restart     = get(ENV, "RESTART", "")
-Nz          = parse(Int, get(ENV, "NZ", "120"))
+profile     = parse(Bool, get(ENV, "PROFILE", "0"))
+restart     =             get(ENV, "RESTART", "")
+Nz          = parse(Int,  get(ENV, "NZ", "100"))
+loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "1"))
 
 Δt = 10minutes * (3 / resolution)
-stop_time = 100days
+stop_time = 200days
+
+Δt = 40.0
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart, profile, with_fluxes)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart, profile, with_fluxes, loadbalance)
 
 if !isnothing(simulation)
     OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
@@ -42,7 +45,7 @@ if !isnothing(simulation)
     if isempty(restart)
         run!(simulation)
     else
-        pickup_file =  "restart/RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+        pickup_file =  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
         @info "restarting from $(pickup_file)"
         run!(simulation, pickup = pickup_file)
     end

@@ -2,6 +2,7 @@ using Oceananigans.Units
 using Oceananigans.Utils
 using Oceananigans.Grids: halo_size
 using Oceananigans.Architectures: arch_array, architecture
+using Oceananigans.Distributed: partition_global_array
 
 initialize_model!(model, ::Val{:Quiescent}; kw...)   = nothing
 
@@ -21,16 +22,24 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
     if !isempty(restart)
         return nothing
     end
-    
+
     grid = model.grid
-    Hx, Hy, Hz = halo_size(grid)
-    Nx, Ny, Nz = size(grid)
 
-    rk = grid.architecture.local_rank
+    arch = architecture(grid)
+    T_init = zeros(size(grid)...)
+    S_init = zeros(size(grid)...)
 
-    T_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
-    S_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
-    
+    rx = grid.architecture.local_rank
+
+    for k in 1:size(grid, 3)
+       if rx == 1
+          @info "loading level $k"
+       end
+
+       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/T12y_at$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
+       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/S12y_at$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
+    end
+
     set!(model, T = T_init, S = S_init)
 
     return nothing
@@ -78,10 +87,10 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
     Nx, Ny, _ = size(grid)
 
     if with_fluxes
-        τx = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny  ))
-        τy = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny+1))
-        Qs = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny  ))
-        Fs = arch_array(arch, zeros(eltype(grid), 6, Nx, Ny  ))
+        τx = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
+        τy = arch_array(arch, zeros(eltype(grid), Nx, Ny+1, 6))
+        Qs = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
+        Fs = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
 
         load_fluxes!(grid, τx, τy, Qs, Fs, 1)
 
@@ -123,10 +132,9 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
 end
 
 function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
-    rx = grid.architecture.local_rank
+    arch = architecture(grid)
+    rx   = arch.local_rank
     nx, ny, _ = size(grid) 
-
-    irange = UnitRange(1 + rx * nx, (rx + 1) * nx)
 
     if rx == 1
         @info "loading fluxes from file fluxes_$(filenum).jld2"
@@ -137,27 +145,15 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     # Garbage collect!!
     GC.gc()
 
-    τxtmp = Array(file["τx"][irange, :, :])
-    τytmp = Array(file["τy"][irange, :, :])
-    Qstmp = Array(file["Qs"][irange, :, :])
-    Fstmp = Array(file["Fs"][irange, :, :])
+    τxtmp = partition_global_array(arch, file["τx"], (nx, ny,   6))
+    τytmp = partition_global_array(arch, file["τy"], (nx, ny+1, 6))
+    Qstmp = partition_global_array(arch, file["Qs"], (nx, ny,   6))
+    Fstmp = partition_global_array(arch, file["Fs"], (nx, ny,   6))
 
-    τxin = zeros(6, nx, ny)
-    τyin = zeros(6, nx, ny+1)
-    Qsin = zeros(6, nx, ny)
-    Fsin = zeros(6, nx, ny)
-
-    for t in 1:6
-      τxin[t, :, :] .= τxtmp[:, :, t]  
-      τyin[t, :, :] .= τytmp[:, :, t]
-      Qsin[t, :, :] .= Qstmp[:, :, t]
-      Fsin[t, :, :] .= Fstmp[:, :, t]
-    end
-
-    copyto!(τx, τxin)
-    copyto!(τy, τyin)
-    copyto!(Qs, Qsin)
-    copyto!(Fs, Fsin)
+    copyto!(τx, τxtmp)
+    copyto!(τy, τytmp)
+    copyto!(Qs, Qstmp)
+    copyto!(Fs, Fstmp)
 
     return nothing
 end

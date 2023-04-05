@@ -1,4 +1,6 @@
 using Oceananigans.Grids: ynode
+using Oceananigans.Distributed
+using Oceananigans.Distributed: DistributedGrid, partition_global_array
 
 function linear_z_faces(Nz, Depth; first_Δ = 5)
 
@@ -38,11 +40,10 @@ function double_drake_bathymetry(λ, φ)
 end
 
 # Assumes there is a jld2 file called bathymetry.jld2 in the data folder
-function realistic_bathymetry(grid)
-    rx = grid.architecture.local_rank
-    nx = size(grid, 1) 
-    return jldopen("data/bathymetry.jld2")["bathymetry"][1+rx*nx:(rx+1)*nx, :]
-end
+realistic_bathymetry(grid::DistributedGrid) = 
+    partition_global_array(architecture(grid), jldopen("data/bathymetry.jld2")["bathymetry"], size(grid))
+
+realistic_bathymetry(grid) = jldopen("data/bathymetry.jld2")["bathymetry"]
 
 @inline function cubic_profile(x1, x2, y1, y2, d1, d2)
     A = [ x1^3 x1^2 x1 1.0
@@ -132,7 +133,7 @@ end
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 5
+# Fluxes are saved as [Nt, Nx, Ny] where Nt = 1:6 and represents day 0 to day 5
 @inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
