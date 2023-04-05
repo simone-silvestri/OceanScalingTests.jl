@@ -243,10 +243,10 @@ tmp  = zeros(Nx ÷ 2, Ny,   6)
 tmpy = zeros(Nx ÷ 2, Ny+1, 6)
 
 for (idx, iterations) in enumerate(it_collection[1:45])
-    τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations; smoothing_passes = 15, max_val = 1e8, location = (Face, Center, Center))
-    τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations; smoothing_passes = 15, max_val = 1e8, location = (Center, Face, Center))
-    Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations; max_val = 1e8)
-    Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations; max_val = 1e8)
+    τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations; Nx, Ny, smoothing_passes = 15, max_val = 1e8, location = (Face, Center, Center))
+    τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations; Nx, Ny, smoothing_passes = 15, max_val = 1e8, location = (Center, Face, Center))
+    Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations; Nx, Ny, max_val = 1e8)
+    Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations; Nx, Ny, max_val = 1e8)
 
     @info "Correcting fluxes"
     Qs .*= (1 / 1000 / 3991)
