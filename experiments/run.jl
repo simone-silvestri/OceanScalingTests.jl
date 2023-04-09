@@ -27,19 +27,21 @@ profile     = parse(Bool, get(ENV, "PROFILE", "0"))
 restart     =             get(ENV, "RESTART", "")
 Nz          = parse(Int,  get(ENV, "NZ", "100"))
 loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "1"))
+precision   = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 
-Δt = 10minutes * (3 / resolution)
+Δt = precision(45 * 48 / resolution)
 stop_time = 200days
-
-Δt = 40.0
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart, profile, with_fluxes, loadbalance)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
+						       profile, with_fluxes, loadbalance, precision)
 
 if !isnothing(simulation)
+
+    @info "type of dt :" typeof(simulation.Δt)
     OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
     
     if isempty(restart)

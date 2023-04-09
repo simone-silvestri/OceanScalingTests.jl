@@ -3,7 +3,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.ImmersedBoundaries: immersed_cell
 
 """
-    function load_balanced_grid(arch, N, latitude, z_faces, 
+    function load_balanced_grid(arch, precision, N, latitude, z_faces, 
         ::Val{balance}, ::Val{experiment}) where {balance, experiment}
 
 returns a grid which is balanced as much as possible, i.e. we try as much as possible to have a similar
@@ -13,13 +13,13 @@ of GPUs where the memory is already full when all Nx are the same.
 The load balancing is activated id `balance == true` and `experiment == :RealisticOcean`
 In any case, the computational grid has an active cells map to elide computations in the immersed domain
 """
-function load_balanced_grid(arch, N, latitude, z_faces, 
+function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution, 
                             ::Val{balance}, ::Val{experiment}) where {balance, experiment}
 
     Nx, Ny, Nz = N
     Nx = Nx ÷ arch.ranks[1]
 
-    @show underlying_grid = LatitudeLongitudeGrid(arch;
+    @show underlying_grid = LatitudeLongitudeGrid(arch, precision;
                                 size = (Nx, Ny, Nz),
                                 longitude = (-180, 180),
                                 latitude = latitude,
@@ -27,23 +27,23 @@ function load_balanced_grid(arch, N, latitude, z_faces,
                                 z = z_faces)
 
     return experiment == :RealisticOcean ? 
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid)), true) :
+           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) :
            experiment == :DoubleDrake ?
            ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
            underlying_grid
 end
 
-function load_balanced_grid(arch, N, latitude, z_faces, 
+function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution, 
                             ::Val{true}, ::Val{:RealisticOcean}) 
 
-    underlying_grid = LatitudeLongitudeGrid(GPU();
+    underlying_grid = LatitudeLongitudeGrid(GPU(), precision;
                         size = N,
                         longitude = (-180, 180),
                         latitude = latitude,
                         halo = (5, 5, 5),
                         z = z_faces)
 
-    ibg = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid))) 
+    ibg = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution))) 
 
     load_per_slab = arch_array(GPU(), zeros(Int, N[1]))
 
@@ -55,21 +55,21 @@ function load_balanced_grid(arch, N, latitude, z_faces,
 
     # We cannot have Nx > 650 if Nranks = 32 otherwise we incur in memory limitations,
     # so for a small number of GPUs we are limited in the load balancing
-    redistribute_size_to_fulfill_memory_limitation!(local_N, 650)
+    redistribute_size_to_fulfill_memory_limitation!(local_N, 800)
 
     rank = MPI.Comm_rank(MPI.COMM_WORLD)
     N    = (local_N[rank+1], N[2], N[3])
 
     @info "slab decomposition with " rank N
 
-    @show underlying_grid = LatitudeLongitudeGrid(arch;
+    @show underlying_grid = LatitudeLongitudeGrid(arch, precision;
                                                   size = N,
                                                   longitude = (-180, 180),
                                                   latitude = latitude,
                                                   halo = (5, 5, 5),
                                                   z = z_faces)
 
-    return ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid)), true) 
+    return ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) 
 end
 
 @kernel function assess_load(load_per_slab, ibg)

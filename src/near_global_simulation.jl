@@ -34,11 +34,12 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  use_buffers = true,
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
                                  Nz = 100,
                                  profile = false,
                                  with_fluxes = true,
-                                 loadbalance = true)
+                                 loadbalance = true,
+				 precision = Float64,
+				 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
 
     child_arch = GPU()
 
@@ -53,7 +54,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     z_faces = z_faces_function(Nz, Depth)
 
-    grid = load_balanced_grid(arch, (Nx, Ny, Nz), latitude, z_faces, Val(loadbalance), Val(experiment))
+    grid = load_balanced_grid(arch, precision, (Nx, Ny, Nz), latitude, z_faces, resolution, Val(loadbalance), Val(experiment))
 
     #####
     ##### Physics setup and numerical methods
@@ -62,24 +63,25 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     νz = 5e-4
     κz = 3e-5        
 
-    vertical_diffusivity = VerticalScalarDiffusivity(ν=νz, κ=κz)
-    horizont_diffusivity = HorizontalScalarDiffusivity(ν=ad_hoc_viscosity, discrete_form=true, 
+    vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
+    horizont_diffusivity = HorizontalScalarDiffusivity(precision; ν=ad_hoc_viscosity, discrete_form=true, 
                                                        loc = (Center, Center, Center),
-                                                       parameters = (sᵐᵃˣ = 2.5, νᶜ = 1000.0))
+						       parameters = (sᵐᵃˣ = precision(2.5), νᶜ = precision(1000.0)))
     
     tracer_advection   = WENO(grid.underlying_grid)
-    momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
-                                         divergence_scheme = WENO(), 
-                                         vertical_scheme   = WENO(grid.underlying_grid)) 
+    momentum_advection = VectorInvariant(vorticity_scheme  = WENO(precision), 
+                                         divergence_scheme = WENO(precision), 
+					 vertical_scheme   = WENO(grid.underlying_grid))
 
-    free_surface = SplitExplicitFreeSurface(; substeps = barotropic_substeps(Δt, grid, g_Earth))
+    free_surface = SplitExplicitFreeSurface(; gravitational_acceleration = precision(g_Earth),
+					      substeps = barotropic_substeps(Δt, grid, g_Earth))
 
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
-    buoyancy = SeawaterBuoyancy(equation_of_state=TEOS10EquationOfState())
+    buoyancy = SeawaterBuoyancy(precision; equation_of_state=TEOS10EquationOfState(precision))
     closure  = (vertical_diffusivity, boundary_layer_parameterization, horizont_diffusivity)
     
-    coriolis = HydrostaticSphericalCoriolis()
+    coriolis = HydrostaticSphericalCoriolis(precision)
 
     #####
     ##### Boundary conditions
@@ -106,17 +108,15 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     #####
     ##### Initial condition:
     #####
-
-    initialize_model!(model, Val(experiment); restart)
-    @info "model initialized"
-
-    @show model.velocities.u.boundary_conditions
-    
+ 
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
         profiled_time_steps!(model, Δt)
         return nothing
     end
+
+    initialize_model!(model, Val(experiment); restart)
+    @info "model initialized"
 
     #####
     ##### Simulation setup
@@ -158,7 +158,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     return simulation
 end
 
-function profiled_time_steps!(model, Δt; gc_steps = 10, profiled_steps = 10)
+function profiled_time_steps!(model, Δt; gc_steps = 10, profiled_steps = 50)
     # initial time steps
     for step in 1:10
         time_step!(model, Δt)
