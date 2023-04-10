@@ -15,7 +15,7 @@ export EXPERIMENT=DoubleDrake
 
 JULIA_DEPOT_PATH="${COMMON}/depot" julia --check-bounds=no --project -e "import Pkg; Pkg.instantiate(); Pkg.precompile()"
 
-rm -rf ${HOME}/.julia/{packages, compiled}
+rm -rf ${HOME}/.julia/{packages, compiled, scratchspaces}
 
 export JULIA_DEPOT_PATH=":${COMMON}/depot"
 julia --check-bounds=no --project experiments/run.jl
