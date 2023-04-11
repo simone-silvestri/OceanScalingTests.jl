@@ -112,16 +112,8 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
     u_immersed_bot_bc = FluxBoundaryCondition(u_immersed_quadratic_bottom_drag, discrete_form=true, parameters=μ)
     v_immersed_bot_bc = FluxBoundaryCondition(v_immersed_quadratic_bottom_drag, discrete_form=true, parameters=μ)
 
-    u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_bot_bc, 
-                                                west = u_immersed_bot_bc, 
-                                                east = u_immersed_bot_bc,
-                                               north = u_immersed_bot_bc,
-                                               south = u_immersed_bot_bc)
-    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc, 
-                                                west = v_immersed_bot_bc, 
-                                                east = v_immersed_bot_bc,
-                                               north = v_immersed_bot_bc,
-                                               south = v_immersed_bot_bc)
+    u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_bot_bc)
+    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc)
 
     T_bcs = FieldBoundaryConditions(top=T_top_bc)
     S_bcs = FieldBoundaryConditions(top=S_top_bc)

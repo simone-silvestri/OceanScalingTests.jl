@@ -6,7 +6,7 @@ using Oceananigans.Architectures: device
 using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
-using CUDA
+using CUDA: synchronize
 
 smoothing_convective_adjustment = ConvectiveAdjustmentVerticalDiffusivity(convective_κz=10.0, convective_νz=10.0,
                                                                           background_κz=1.0,  background_νz=1.0)
@@ -79,7 +79,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
     buoyancy = SeawaterBuoyancy(precision; equation_of_state=TEOS10EquationOfState(precision))
-    closure  = (vertical_diffusivity, boundary_layer_parameterization, horizont_diffusivity)
+    closure  = (vertical_diffusivity, boundary_layer_parameterization) #, horizont_diffusivity)
     
     coriolis = HydrostaticSphericalCoriolis(precision)
 
@@ -146,7 +146,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         return nothing
     end
 
-    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
     
     if experiment == :RealisticOcean 
         if with_fluxes
@@ -158,7 +158,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     return simulation
 end
 
-function profiled_time_steps!(model, Δt; gc_steps = 10, profiled_steps = 50)
+function profiled_time_steps!(model, Δt; gc_steps = 50, profiled_steps = 30)
     # initial time steps
     for step in 1:10
         time_step!(model, Δt)
@@ -171,6 +171,8 @@ function profiled_time_steps!(model, Δt; gc_steps = 10, profiled_steps = 50)
                 time_step!(model, Δt)
             end
         end
+	#synchronize()
+	#MPI.Barrier(MPI.COMM_WORLD)
         GC.gc()
     end
 end

@@ -55,7 +55,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
 
     # We cannot have Nx > 650 if Nranks = 32 otherwise we incur in memory limitations,
     # so for a small number of GPUs we are limited in the load balancing
-    redistribute_size_to_fulfill_memory_limitation!(local_N, 800)
+    redistribute_size_to_fulfill_memory_limitation!(local_N, 1150)
 
     rank = MPI.Comm_rank(MPI.COMM_WORLD)
     N    = (local_N[rank+1], N[2], N[3])
