@@ -21,14 +21,8 @@ using MPI
 
 include("bathymetry_and_forcings.jl")
 include("boundary_and_initial_conditions.jl")
+include("grid_load_balance.jl")
 include("near_global_simulation.jl")
 include("simulation_outputs.jl")
-
-# include("../precompile/precompile_Oceananigans.jl")
-import Oceananigans: OffsetArrays
-import Oceananigans.Architectures: KernelAbstractions
-import SeawaterPolynomials
-include("../precompile/precompile_Oceananigans.jl")
-include("../precompile/precompile_OceanScalingTests.jl")
 
 end # module OceanScalingTests

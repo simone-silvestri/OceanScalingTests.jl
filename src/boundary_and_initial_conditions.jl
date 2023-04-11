@@ -2,6 +2,7 @@ using Oceananigans.Units
 using Oceananigans.Utils
 using Oceananigans.Grids: halo_size
 using Oceananigans.Architectures: arch_array, architecture
+using Oceananigans.Distributed: partition_global_array
 
 initialize_model!(model, ::Val{:Quiescent}; kw...)   = nothing
 
@@ -21,16 +22,24 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
     if !isempty(restart)
         return nothing
     end
-    
+
     grid = model.grid
-    Hx, Hy, Hz = halo_size(grid)
-    Nx, Ny, Nz = size(grid)
 
-    rk = grid.architecture.local_rank
+    arch = architecture(grid)
+    T_init = zeros(size(grid)...)
+    S_init = zeros(size(grid)...)
 
-    T_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["T/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
-    S_init = jldopen("restart/RealisticOcean_checkpoint_$(rk)_interation28800.jld2")["S/data"][Hx+1:end-Hx, Hy+1:end-Hy, end-Hz-Nz:end-Hz]
-    
+    rx = grid.architecture.local_rank
+
+    for k in 1:size(grid, 3)
+       if rx == 1
+          @info "loading level $k"
+       end
+
+       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/T12y_at$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
+       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/S12y_at$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
+    end
+
     set!(model, T = T_init, S = S_init)
 
     return nothing
@@ -78,10 +87,10 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
     Nx, Ny, _ = size(grid)
 
     if with_fluxes
-        τx = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
+        τx = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
         τy = arch_array(arch, zeros(eltype(grid), Nx, Ny+1, 6))
-        Qs = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
-        Fs = arch_array(arch, zeros(eltype(grid), Nx, Ny,   6))
+        Qs = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
+        Fs = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
 
         load_fluxes!(grid, τx, τy, Qs, Fs, 1)
 
@@ -103,16 +112,8 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
     u_immersed_bot_bc = FluxBoundaryCondition(u_immersed_quadratic_bottom_drag, discrete_form=true, parameters=μ)
     v_immersed_bot_bc = FluxBoundaryCondition(v_immersed_quadratic_bottom_drag, discrete_form=true, parameters=μ)
 
-    u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_bot_bc, 
-                                                west = u_immersed_bot_bc, 
-                                                east = u_immersed_bot_bc,
-                                               north = u_immersed_bot_bc,
-                                               south = u_immersed_bot_bc)
-    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc, 
-                                                west = v_immersed_bot_bc, 
-                                                east = v_immersed_bot_bc,
-                                               north = v_immersed_bot_bc,
-                                               south = v_immersed_bot_bc)
+    u_immersed_bc = ImmersedBoundaryCondition(bottom = u_immersed_bot_bc)
+    v_immersed_bc = ImmersedBoundaryCondition(bottom = v_immersed_bot_bc)
 
     T_bcs = FieldBoundaryConditions(top=T_top_bc)
     S_bcs = FieldBoundaryConditions(top=S_top_bc)
@@ -123,10 +124,9 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
 end
 
 function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
-    rx = grid.architecture.local_rank
-    nx = size(grid, 1) 
-
-    irange = UnitRange(1 + rx * nx, (rx + 1) * nx)
+    arch = architecture(grid)
+    rx   = arch.local_rank
+    nx, ny, _ = size(grid) 
 
     if rx == 1
         @info "loading fluxes from file fluxes_$(filenum).jld2"
@@ -137,15 +137,15 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     # Garbage collect!!
     GC.gc()
 
-    τxin = Array(file["τx"][irange, :, :])
-    τyin = Array(file["τy"][irange, :, :])
-    Qsin = Array(file["Qs"][irange, :, :])
-    Fsin = Array(file["Fs"][irange, :, :])
+    τxtmp = partition_global_array(arch, file["τx"], (nx, ny,   6))
+    τytmp = partition_global_array(arch, file["τy"], (nx, ny+1, 6))
+    Qstmp = partition_global_array(arch, file["Qs"], (nx, ny,   6))
+    Fstmp = partition_global_array(arch, file["Fs"], (nx, ny,   6))
 
-    copyto!(τx, τxin)
-    copyto!(τy, τyin)
-    copyto!(Qs, Qsin)
-    copyto!(Fs, Fsin)
+    copyto!(τx, τxtmp)
+    copyto!(τy, τytmp)
+    copyto!(Qs, Qstmp)
+    copyto!(Fs, Fstmp)
 
     return nothing
 end

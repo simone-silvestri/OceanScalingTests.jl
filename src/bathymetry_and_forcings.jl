@@ -1,4 +1,30 @@
 using Oceananigans.Grids: ynode
+using Oceananigans.Distributed
+using Oceananigans.Distributed: DistributedGrid, partition_global_array
+using DataDeps
+
+function z_from_ecco(Nz, Depth)
+
+    if Nz != 48
+	    throw(ArgumentError("Not ecco grid!!"))
+    end
+    path = "https://github.com/CliMA/OceananigansArtifacts.jl/raw/ss/new_hydrostatic_data_after_cleared_bugs/quarter_degree_near_global_input_data/"
+
+    dh = DataDep("quarter_degree_near_global_lat_lon",
+      "Forcing data for global latitude longitude simulation",
+       path * "z_faces-50-levels.jld2"
+    )
+
+    DataDeps.register(dh)
+
+    datadep"quarter_degree_near_global_lat_lon"
+    
+    datadep_path = @datadep_str "quarter_degree_near_global_lat_lon/z_faces-50-levels.jld2"
+    file_z_faces = jldopen(datadep_path)
+    
+    # Stretched faces taken from ECCO Version 4 (50 levels in the vertical)
+    return file_z_faces["z_faces"][3:end];
+end
 
 function linear_z_faces(Nz, Depth; first_Δ = 5)
 
@@ -38,11 +64,10 @@ function double_drake_bathymetry(λ, φ)
 end
 
 # Assumes there is a jld2 file called bathymetry.jld2 in the data folder
-function realistic_bathymetry(grid)
-    rx = grid.architecture.local_rank
-    nx = size(grid, 1) 
-    return jldopen("data/bathymetry.jld2")["bathymetry"][1+rx*nx:(rx+1)*nx, :]
-end
+realistic_bathymetry(grid::DistributedGrid, resolution) = 
+      partition_global_array(architecture(grid), eltype(grid).(jldopen("data/bathymetry$(resolution).jld2")["bathymetry"]), size(grid))
+
+realistic_bathymetry(grid, resolution) = eltype(grid).(jldopen("data/bathymetry$(resolution).jld2")["bathymetry"])
 
 @inline function cubic_profile(x1, x2, y1, y2, d1, d2)
     A = [ x1^3 x1^2 x1 1.0
@@ -132,7 +157,7 @@ end
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 5
+# Fluxes are saved as [Nt, Nx, Ny] where Nt = 1:6 and represents day 0 to day 5
 @inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
