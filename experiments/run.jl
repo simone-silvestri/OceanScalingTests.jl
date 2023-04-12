@@ -1,3 +1,10 @@
+using Preferences
+const iscray = parse(Bool, load_preference(Base.UUID("3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"), "iscray", "false"))
+@debug "Preloading GTL library" iscray
+if iscray
+    import Libdl
+    Libdl.dlopen_e("libmpi_gtl_cuda", Libdl.RTLD_LAZY | Libdl.RTLD_GLOBAL)
+end
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
@@ -14,19 +21,21 @@ comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
 Nranks = MPI.Comm_size(comm)
 
-Ry = 1
-Rx = Nranks
+Ry = Int(sqrt(Nranks))
+Rx = Ry
+
+@show Rx, Ry
 
 ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
 resolution  = parse(Int,  get(ENV, "RESOLUTION", "3"))
 experiment  = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
-with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
-profile     = parse(Bool, get(ENV, "PROFILE", "0"))
+with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "0"))
+profile     = parse(Bool, get(ENV, "PROFILE", "1"))
 restart     =             get(ENV, "RESTART", "")
 Nz          = parse(Int,  get(ENV, "NZ", "100"))
-loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "1"))
+loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision   = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 
 Δt = precision(45 * 48 / resolution)
@@ -36,13 +45,8 @@ if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
 end
 
-if resolution == 12
-   simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
-						       profile, with_fluxes, loadbalance, precision, z_faces_function = OceanScalingTests.z_from_ecco)
-else
-   simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, loadbalance, precision)
-end
 
 if !isnothing(simulation)
 

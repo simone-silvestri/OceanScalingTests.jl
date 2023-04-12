@@ -10,5 +10,5 @@ iscray = "true"
 version = "local"
 
 [GPUCompiler]
-disk_cache = "true"
+disk_cache = "false"
 cache_key = "Oceananigans"

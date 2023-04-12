@@ -7,10 +7,10 @@ using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
 using CUDA: synchronize
+using JLD2
 
 smoothing_convective_adjustment = ConvectiveAdjustmentVerticalDiffusivity(convective_κz=10.0, convective_νz=10.0,
                                                                           background_κz=1.0,  background_νz=1.0)
-
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
     wave_speed = sqrt(gravitational_acceleration * grid.Lz)
@@ -112,13 +112,14 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Initial condition:
     #####
 
+    # initialize_model!(model, Val(experiment); restart)
+    
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
-       profiled_time_steps!(model, Δt)
+       profiled_time_steps!(model, Δt, resolution)
        return nothing
     end
 
-    initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
     #####
@@ -161,21 +162,44 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     return simulation
 end
 
-function profiled_time_steps!(model, Δt; gc_steps = 50, profiled_steps = 30)
+function profiled_time_steps!(model, Δt, resolution; gc_steps = 10, profiled_steps = 30)
     # initial time steps
     for step in 1:10
         time_step!(model, Δt)
     end
-  
+    
+    nranks = MPI.Comm_size(MPI.COMM_WORLD)
+    rank   = MPI.Comm_rank(MPI.COMM_WORLD)
+
+    if rank == 0
+      @info "start profiling"
+    end
+    elapsed_time = Float64[0] 
     # Perform profiling
     for step in 1:gc_steps
         for nogc in 1:profiled_steps
-            NVTX.@range "one time step" begin
+              elapsed_time[1] += @elapsed begin
+	      NVTX.@range "one time step" begin
                 time_step!(model, Δt)
-            end
+              end
+           end
         end
 	#synchronize()
 	#MPI.Barrier(MPI.COMM_WORLD)
         #Threads.@spawn GC.gc()
     end
+    elapsed_time[1] = elapsed_time[1] / nranks / gc_steps / profiled_steps
+    MPI.Allreduce!(elapsed_time, +, MPI.COMM_WORLD)
+
+    if rank == 0
+       file = "time_res$(resolution)_ranks$(nranks)_prec$(eltype(model.grid)).jld2"
+       while isfile(file)
+	  file = "new_" * file
+       end
+       jldsave(file, elapsed_time=elapsed_time[1])
+    end
+
+    MPI.Barrier(MPI.COMM_WORLD)
+
+    return nothing
 end

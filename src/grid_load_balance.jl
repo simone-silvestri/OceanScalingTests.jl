@@ -18,6 +18,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
 
     Nx, Ny, Nz = N
     Nx = Nx ÷ arch.ranks[1]
+    Ny = Ny ÷ arch.ranks[2]
 
     @show underlying_grid = LatitudeLongitudeGrid(arch, precision;
                                 size = (Nx, Ny, Nz),
