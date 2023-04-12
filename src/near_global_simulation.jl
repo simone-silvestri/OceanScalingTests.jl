@@ -6,6 +6,7 @@ using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
 using CUDA
+using AMDGPU
 
 smoothing_convective_adjustment = ConvectiveAdjustmentVerticalDiffusivity(convective_κz=10.0, convective_νz=10.0,
                                                                           background_κz=1.0,  background_νz=1.0)
@@ -38,7 +39,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  profile = false,
                                  with_fluxes = true)
 
-    child_arch = GPU()
+    child_arch = CUDA.has_cuda() ? CUDAGPU() : (AMDGPU.has_rocm_gpu() ? ROCMGPU() : CPU())
 
     topo = (Periodic, Bounded, Bounded)
     arch = DistributedArch(child_arch; topology = topo, ranks, use_buffers)
