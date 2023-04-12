@@ -73,7 +73,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                          divergence_scheme = WENO(precision), 
 					 vertical_scheme   = WENO(grid.underlying_grid))
 
-    free_surface = SplitExplicitFreeSurface(; gravitational_acceleration = precision(g_Earth),
+    free_surface = SplitExplicitFreeSurface(precision; gravitational_acceleration = precision(g_Earth),
 					      substeps = barotropic_substeps(Δt, grid, g_Earth))
 
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
@@ -96,6 +96,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     tracers = boundary_layer_parameterization isa CATKEVerticalDiffusivity ?
               (:T, :S, :e) : (:T, :S)
 
+    @info "allocating model"
     model = HydrostaticFreeSurfaceModel(; grid,
                                           free_surface,
                                           momentum_advection, tracer_advection,
@@ -105,11 +106,18 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                           boundary_conditions,
                                           closure)
 
+    @info "model allocated"
+
     #####
     ##### Initial condition:
     #####
- 
+
     # If we are profiling launch only 100 time steps and mark each one with NVTX
+    if profile
+       profiled_time_steps!(model, Δt)
+       return nothing
+    end
+
     initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
