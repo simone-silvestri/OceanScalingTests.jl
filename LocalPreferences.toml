@@ -1,3 +1,7 @@
 [GPUCompiler]
 disk_cache = "true"
 cache_key = "Oceananigans"
+[AMDGPU]
+logging_enabled = true
+use_artifacts = false
+use_hip_malloc_override = true
