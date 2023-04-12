@@ -22,7 +22,7 @@ export COMMON="/nobackup/users/ssilvest/perlmutter-test"
 
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
 export JULIA_NVTX_CALLBACKS=gc
-export JULIA_DEPOT_PATH="${COMMON}/depot"
+export JULIA_DEPOT_PATH=":${COMMON}/depot"
 export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
 export JULIA_CUDA_MEMORY_POOL=none
 export JULIA="${COMMON}/julia-1.9-src/julia"
