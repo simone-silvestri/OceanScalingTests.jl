@@ -49,19 +49,13 @@ simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, s
 						       profile, with_fluxes, loadbalance, precision)
 
 if !isnothing(simulation)
-
     @info "type of dt :" typeof(simulation.Δt)
-    ##OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
+    OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
     
-    if isempty(restart)
-        run!(simulation)
-    else
-        pickup_file =  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
-        @info "restarting from $(pickup_file)"
-        run!(simulation, pickup = pickup_file)
-    end
+    pickup = isempty(restart) ? false :  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+    run!(simulation, pickup = pickup_file)
 
     @info "simulation took $(prettytime(simulation.run_wall_time))"
 end
 
-# MPI.Finalize()
+MPI.Finalize()
