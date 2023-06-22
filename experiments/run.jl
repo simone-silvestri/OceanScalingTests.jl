@@ -5,7 +5,6 @@ if iscray
     import Libdl
     Libdl.dlopen_e("libmpi_gtl_cuda", Libdl.RTLD_LAZY | Libdl.RTLD_GLOBAL)
 end
-
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
@@ -22,40 +21,41 @@ comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
 Nranks = MPI.Comm_size(comm)
 
-Ry = 1
-Rx = Nranks
+Ry = Int(sqrt(Nranks))
+Rx = Ry
+
+@show Rx, Ry
 
 ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
-resolution  = parse(Int, get(ENV, "RESOLUTION", "3"))
-experiment  = Symbol(get(ENV, "EXPERIMENT", "DoubleDrake"))
-with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "1"))
+resolution  = parse(Int,  get(ENV, "RESOLUTION", "3"))
+experiment  = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
+with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "0"))
 profile     = parse(Bool, get(ENV, "PROFILE", "1"))
-restart     = get(ENV, "RESTART", "")
-Nz          = parse(Int, get(ENV, "NZ", "120"))
+restart     =             get(ENV, "RESTART", "")
+Nz          = parse(Int,  get(ENV, "NZ", "100"))
+loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "0"))
+precision   = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 
-Δt = 10minutes * (3 / resolution)
-stop_time = 100days
+Δt = precision(45 * 48 / resolution)
+stop_time = 1000
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart, profile, with_fluxes)
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
+						       profile, with_fluxes, loadbalance, precision)
 
 if !isnothing(simulation)
+    @info "type of dt :" typeof(simulation.Δt)
     OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
     
-    if isempty(restart)
-        run!(simulation)
-    else
-        pickup_file =  "restart/RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
-        @info "restarting from $(pickup_file)"
-        run!(simulation, pickup = pickup_file)
-    end
+    pickup = isempty(restart) ? false :  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+    run!(simulation, pickup = pickup_file)
 
     @info "simulation took $(prettytime(simulation.run_wall_time))"
 end
 
-# MPI.Finalize()
+MPI.Finalize()

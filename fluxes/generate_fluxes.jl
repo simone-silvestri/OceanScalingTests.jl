@@ -8,7 +8,6 @@ using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Statistics: dot
 using DataDeps
-# using GLMakie
 using NetCDF
 using JLD2 
 
@@ -28,17 +27,8 @@ arch = GPU()
     end
 end
 
-function propagate_field!(field) 
-    grid = field.grid
-    arch = architecture(grid)
-
-    Nx, Ny, _ = size(grid)
-
-    event = launch!(arch, grid, :xyz, _propagate_field!, field, Nx, Ny)
-    wait(Oceananigans.Architectures.device(arch), event)
-
-    return nothing
-end
+propagate_field!(field) =
+    launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, Nx, Ny)
 
 @kernel function _extend_vertically!(field, Nz)
     i, j = @index(Global, NTuple)
@@ -50,15 +40,8 @@ end
     end
 end
 
-function extend_vertically!(field) 
-    grid = field.grid
-    arch = architecture(grid)
-
-    event = launch!(arch, grid, :xy, _extend_vertically!, field, size(grid, 3))
-    wait(Oceananigans.Architectures.device(arch), event)
-
-    return nothing
-end
+extend_vertically!(field) =
+    launch!(architecture(field.grid), field.grid, :xyz, _extend_vertically!, field, size(grid, 3))
 
 @kernel function _horizontal_filter!(new_field, field)
     i, j, k = @index(Global, NTuple)
@@ -72,15 +55,8 @@ end
     end
 end
 
-function horizontal_filter!(new_field, field) 
-    grid = field.grid
-    arch = architecture(grid)
-
-    event = launch!(arch, grid, :xyz, _horizontal_filter!, new_field, field)
-    wait(Oceananigans.Architectures.device(arch), event)
-
-    return nothing
-end
+horizontal_filter!(new_field, field) =
+    launch!(architecture(field.grid), field.grid, :xyz, _horizontal_filter!, new_field, field)
 
 @kernel function _fix_max_val!(field, max_val)
     i, j, k = @index(Global, NTuple)
@@ -92,15 +68,8 @@ end
 
 fix_max_val!(field, ::Nothing) = nothing
 
-function fix_max_val!(field, max_val) 
-    grid = field.grid
-    arch = architecture(grid)
-
-    event = launch!(arch, grid, :xyz, _fix_max_val!, field, max_val)
-    wait(Oceananigans.Architectures.device(arch), event)
-
-    return nothing
-end
+fix_max_val!(field, max_val) =
+    launch!(architecture(field.grid), field.grid, :xyz, _fix_max_val!, field, max_val)
 
 using Oceananigans.Fields: interpolate, location, instantiated_location
 using Oceananigans.Grids: xnode, ynode, znode

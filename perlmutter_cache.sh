@@ -1,8 +1,8 @@
 module load cray-mpich
 
-export COMMON=/global/common/software/m4367
+export COMMON=/global/homes/s/ssilvest
 
-export PATH=${COMMON}/julia-1.9.0-rc2/bin:${PATH}
+export PATH=${COMMON}/julia-1.9-src/bin:${PATH}
 export JULIA_NUM_THREADS=${SLURM_CPUS_PER_TASK:=1}
 export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/perlmutter"
 
@@ -11,11 +11,14 @@ export CRAY_ACCEL_TARGET="nvidia80"
 
 export RESOLUTION=1
 export NZ=12
-export EXPERIMENT=DoubleDrake
+export PROFILE=1
 
-JULIA_DEPOT_PATH="${COMMON}/depot" julia --check-bounds=no --project -e "import Pkg; Pkg.instantiate(); Pkg.precompile()"
+echo "$EXPERIMENT"
 
-rm -rf ${HOME}/.julia/{packages, compiled, scratchspaces}
+export JULIA_GPUCOMPILER_CACHE=$EXPERIMENT
 
-export JULIA_DEPOT_PATH=":${COMMON}/depot"
+julia --check-bounds=no --project -e "import Pkg; Pkg.instantiate(); Pkg.precompile()"
+
+rm -rf ${COMMON}/.julia/scratchspaces
+
 julia --check-bounds=no --project experiments/run.jl

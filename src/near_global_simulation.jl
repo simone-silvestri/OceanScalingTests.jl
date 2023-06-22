@@ -2,13 +2,12 @@ using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Grids: min_Δx, min_Δy
 using Oceananigans.Utils 
 using Oceananigans.Units
+using Oceananigans.Architectures: device
 using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
-using CUDA
-
-smoothing_convective_adjustment = ConvectiveAdjustmentVerticalDiffusivity(convective_κz=10.0, convective_νz=10.0,
-                                                                          background_κz=1.0,  background_νz=1.0)
+using CUDA: synchronize
+using JLD2
 
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
@@ -17,11 +16,6 @@ function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
 
     return max(Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ))), 10)
-end
-
-@inline function ad_hoc_viscosity(i, j, k, grid, clock, fields, p) 
-    speed = spᶜᶜᶜ(i, j, k, grid, fields)
-    return ifelse(speed > p.sᵐᵃˣ, p.νᶜ, zero(grid))
 end
 
 experiment_depth(exp) = exp == :RealisticOcean ? 5244.5 : 3kilometers
@@ -33,10 +27,12 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  use_buffers = true,
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(),
                                  Nz = 100,
                                  profile = false,
-                                 with_fluxes = true)
+                                 with_fluxes = true,
+                                 loadbalance = true,
+				                 precision = Float64,
+				                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
 
     child_arch = GPU()
 
@@ -46,25 +42,12 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     Lφ = latitude[2] - latitude[1]
 
     # grid size
-    Nx = Int(360 * resolution)
+    Nx = Int(360 * resolution) 
     Ny = Int(Lφ * resolution)
 
     z_faces = z_faces_function(Nz, Depth)
 
-    # A spherical domain
-    @show underlying_grid = LatitudeLongitudeGrid(arch,
-                                                  size = (Nx, Ny, Nz),
-                                                  longitude = (-180, 180),
-                                                  latitude = latitude,
-                                                  halo = (5, 5, 5),
-                                                  z = z_faces,
-                                                  precompute_metrics = true)
-
-    grid = experiment == :RealisticOcean ? 
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid))) :
-           experiment == :DoubleDrake ?
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
-           underlying_grid
+    grid = load_balanced_grid(arch, precision, (Nx, Ny, Nz), latitude, z_faces, resolution, Val(loadbalance), Val(experiment))
 
     #####
     ##### Physics setup and numerical methods
@@ -73,24 +56,21 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     νz = 5e-4
     κz = 3e-5        
 
-    vertical_diffusivity = VerticalScalarDiffusivity(ν=νz, κ=κz)
-    horizont_diffusivity = HorizontalScalarDiffusivity(ν=ad_hoc_viscosity, discrete_form=true, 
-                                                       loc = (Center, Center, Center),
-                                                       parameters = (sᵐᵃˣ = 2.5, νᶜ = 1000.0))
+    vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
-    tracer_advection   = WENO(underlying_grid)
-    momentum_advection = VectorInvariant(vorticity_scheme  = WENO(), 
-                                         divergence_scheme = WENO(), 
-                                         vertical_scheme   = WENO(underlying_grid)) 
+    tracer_advection   = WENO(grid)
+    momentum_advection = VectorInvariant(vorticity_scheme = WENO(precision), 
+                    					 vertical_scheme  = WENO(grid))
 
-    free_surface = SplitExplicitFreeSurface(; substeps = barotropic_substeps(Δt, grid, g_Earth))
+    free_surface = SplitExplicitFreeSurface(precision; gravitational_acceleration = precision(g_Earth),
+					                                   substeps = barotropic_substeps(Δt, grid, g_Earth))
 
     @info "running with $(free_surface.settings.substeps) barotropic substeps"
 
-    buoyancy = SeawaterBuoyancy(equation_of_state=TEOS10EquationOfState())
-    closure  = (vertical_diffusivity, boundary_layer_parameterization, horizont_diffusivity)
+    buoyancy = SeawaterBuoyancy(precision; equation_of_state=TEOS10EquationOfState(precision))
+    closure  = (vertical_diffusivity, boundary_layer_parameterization)
     
-    coriolis = HydrostaticSphericalCoriolis()
+    coriolis = HydrostaticSphericalCoriolis(precision)
 
     #####
     ##### Boundary conditions
@@ -105,6 +85,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     tracers = boundary_layer_parameterization isa CATKEVerticalDiffusivity ?
               (:T, :S, :e) : (:T, :S)
 
+    @info "allocating model"
     model = HydrostaticFreeSurfaceModel(; grid,
                                           free_surface,
                                           momentum_advection, tracer_advection,
@@ -114,18 +95,20 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                           boundary_conditions,
                                           closure)
 
+    @info "model allocated"
+
     #####
     ##### Initial condition:
     #####
 
-    initialize_model!(model, Val(experiment); restart)
-    @info "model initialized"
-
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
-        profiled_time_step!(model, Δt)
+        profiled_time_steps!(model, Δt, resolution)
         return nothing
     end
+    
+    initialize_model!(model, Val(experiment); restart)
+    @info "model initialized"
 
     #####
     ##### Simulation setup
@@ -155,31 +138,54 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         return nothing
     end
 
-    simulation.callbacks[:progress] = Callback(progress, IterationInterval(10))
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
     
     if experiment == :RealisticOcean 
         if with_fluxes
-            simulation.callbacks[:update_fluxes]   = Callback(update_fluxes, TimeInterval(5days))
+            simulation.callbacks[:update_fluxes] = Callback(update_fluxes, TimeInterval(5days))
         end
-        simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
+        simulation.callbacks[:garbage_collect] = Callback((sim) -> Threads.@spawn GC.gc(), IterationInterval(50))
     end
 
     return simulation
 end
 
-function profiled_time_step!(model, Δt; gc_steps = 10, profiled_steps = 10)
+function profiled_time_steps!(model, Δt, resolution; gc_steps = 10, profiled_steps = 30)
     # initial time steps
     for step in 1:10
         time_step!(model, Δt)
     end
-  
+    
+    nranks = MPI.Comm_size(MPI.COMM_WORLD)
+    rank   = MPI.Comm_rank(MPI.COMM_WORLD)
+
+    if rank == 0
+      @info "start profiling"
+    end
+    elapsed_time = Float64[0] 
     # Perform profiling
     for step in 1:gc_steps
         for nogc in 1:profiled_steps
-            NVTX.@range "one time step" begin
-                time_step!(model, Δt)
+            elapsed_time[1] += @elapsed begin
+	            NVTX.@range "one time step" begin
+                    time_step!(model, Δt)
+                end
             end
         end
-        GC.gc()
     end
+
+    elapsed_time[1] = elapsed_time[1] / nranks / gc_steps / profiled_steps
+    MPI.Allreduce!(elapsed_time, +, MPI.COMM_WORLD)
+
+    if rank == 0
+        file = "time_res$(resolution)_ranks$(nranks)_prec$(eltype(model.grid)).jld2"
+        while isfile(file)
+	        file = "new_" * file
+        end
+        jldsave(file, elapsed_time=elapsed_time[1])
+    end
+
+    MPI.Barrier(MPI.COMM_WORLD)
+
+    return nothing
 end

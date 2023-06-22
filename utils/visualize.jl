@@ -60,7 +60,7 @@ function visualize_globe(var, prefix;
 
     vs = [@lift(files[r]["timeseries/$(var)/" * string($iter)][Hx+1:end-Hx, Hy+1:end-Hy, 1]) for r in 1:Nranks]
 
-    iters = (0:1000:210000) #parse.(Int, keys(files[1]["timeseries/t"]))
+    iters = parse.(Int, keys(files[1]["timeseries/t"]))
 
     visualize_makie(vs, λs, φ, iter, iters, colorrange, colormap)
 
