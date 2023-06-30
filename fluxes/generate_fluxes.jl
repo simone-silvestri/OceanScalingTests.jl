@@ -11,8 +11,6 @@ using DataDeps
 using NetCDF
 using JLD2 
 
-arch = GPU()
-
 @kernel function _propagate_field!(field, Nx, Ny)
     i, j, k = @index(Global, NTuple)
     nw = ifelse(i == 1 , field[Nx, j, k], field[i - 1, j, k])
@@ -91,9 +89,8 @@ end
     arch     = architecture(new_grid)
     location = instantiated_location(new_field)
 
-    event = launch!(arch, new_grid, :xyz, _horizontal_interpolate!, new_field, old_field, new_grid, old_grid, location)
-    wait(Oceananigans.Architectures.device(arch), event)
-
+    launch!(arch, new_grid, :xyz, _horizontal_interpolate!, new_field, old_field, new_grid, old_grid, location)
+    
     return nothing
 end
 
@@ -109,8 +106,9 @@ leap_year_days(year) = year == 1996 ||
 monthly_days(year) = [1:31, leap_year_days(year), 1:31, 1:30, 1:31, 1:30, 1:31, 1:31, 1:30, 1:31, 1:30, 1:31]
 
 iters = Int[]
+final_year = parse(Int, get(ENV, "FINALYEAR", "2000"))
 
-for year in 1995:get(ENV, "FINALYEAR")
+for year in 1995:final_year
     for month in 1:12
         for day in monthly_days(year)[month]
             push!(iters, parse(Int, string(year) * string(month, pad=2) * string(day, pad=2)))
@@ -118,9 +116,7 @@ for year in 1995:get(ENV, "FINALYEAR")
     end
 end
 
-# Start from day 10!!! (That is my initial condition)
-iters = iters[10:end]
-
+# Starting from the 1st of January 1992
 it_collection = []
 for i = 1:length(iters)÷10
     push!(it_collection, iters[1+(i-1)*5:i*5+1])
@@ -136,14 +132,15 @@ function set_field!(f::YField, a)
     d[:, 1:end-1] .= a
 
     set!(f, d)
+
+    return nothing
 end
 
-function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny; max_val = nothing, location = (Center, Center, Center))
+function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arch = GPU(), 
+                                           max_val = nothing, location = (Center, Center, Center))
 
     grid_cs510 = LatitudeLongitudeGrid(arch, size = (1440, 720, 1), latitude = (-90, 90), longitude = (-180, 180), z = (0, 1)) 
     cs_field = Field{location...}(grid_cs510)
-    
-    Nj = 4
 
     interp = if location[2] == Face
         zeros(Nx, Ny+1, 6)
@@ -211,7 +208,7 @@ function transpose_flux!(var, tmp)
     var[1:nx, :, :]   .= tmp
 end
 
-function generate_fluxes(resolution)
+function generate_fluxes(resolution; arch = GPU())
 
     # grid size
     Nx = Int(360 * resolution) 
@@ -222,10 +219,10 @@ function generate_fluxes(resolution)
 
     for (idx, iterations) in enumerate(it_collection)
 
-        τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations; max_val = 1e8, location = (Face, Center, Center))
-        τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations; max_val = 1e8, location = (Center, Face, Center))
-        Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations; max_val = 1e8)
-        Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations; max_val = 1e8)
+        τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Face, Center, Center))
+        τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Center, Face, Center))
+        Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations, Nx, Ny; arch, max_val = 1e8)
+        Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations, Nx, Ny; arch, max_val = 1e8)
 
         @info "Correcting fluxes"
         Qs .*= (1 / 1000 / 3991)

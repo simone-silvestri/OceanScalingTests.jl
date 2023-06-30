@@ -3,6 +3,7 @@ using Oceananigans
 using Oceananigans.Units
 using Test
 using MPI
+using Pkg
 
 @testset "OceanScalingTests.jl" begin
    println("Hello world")
@@ -33,4 +34,14 @@ end
    @test coarse_simulation_runs(:Quiescent,   ranks)
    @test coarse_simulation_runs(:DoubleDrake, ranks)
 end
+
+@testset "Generate RealisticOcean fluxes" begin
    
+   ENV["FINALYEAR"] = "1996"
+   include("../fluxes/generate_fluxes.jl")
+
+   generate_fluxes(1; arch = CPU())
+   fluxes = filter(x -> x[end-3:end] == "jld2", readdir("../fluxes"))
+
+   @test length(fluxes) == 
+end
