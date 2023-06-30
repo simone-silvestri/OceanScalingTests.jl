@@ -1,4 +1,5 @@
 using OceanScalingTests
+using Oceananigans.Units
 using Test
 using MPI
 
@@ -7,7 +8,7 @@ using MPI
 end
 
 function coarse_simulation_runs(experiment, ranks)
-   simulation = OceanScalingTests.scaling_test_simulation(1/5, ranks, 10minutes, stop_time; 
+   simulation = OceanScalingTests.scaling_test_simulation(1/5, ranks, 10minutes, 60minutes; 
                                                           child_arch = CPU(), Nz = 10, experiment)
 
    run!(simulation)
