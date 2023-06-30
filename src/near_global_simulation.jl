@@ -1,5 +1,5 @@
 using Oceananigans.BuoyancyModels: g_Earth
-using Oceananigans.Grids: min_Δx, min_Δy
+using Oceananigans.Grids: minimum_xspacing, minimum_yspacing
 using Oceananigans.Utils 
 using Oceananigans.Units
 using Oceananigans.Architectures: device
@@ -12,7 +12,7 @@ using JLD2
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
     wave_speed = sqrt(gravitational_acceleration * grid.Lz)
-    local_Δ    = 1 / sqrt(1 / min_Δx(grid)^2 + 1 / min_Δy(grid)^2)
+    local_Δ    = 1 / sqrt(1 / minimum_xspacing(grid)^2 + 1 / minimum_yspacing(grid)^2)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
 
     return max(Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ))), 10)

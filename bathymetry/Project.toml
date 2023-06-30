@@ -1,0 +1,7 @@
+[deps]
+DataDeps = "124859b0-ceae-595e-8997-d05f6a7a8dfe"
+FastSphericalHarmonics = "d335c211-7587-445e-a753-f0b1fb7e445f"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+Oceananigans = "9e8cae18-63c1-5223-a75c-80ca9d6e9a09"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"

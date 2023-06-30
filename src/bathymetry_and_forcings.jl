@@ -141,19 +141,19 @@ using Oceananigans.Operators
 @inline v_linear_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1]
 
 @inline function surface_stress_x(i, j, grid, clock, fields, p)
-    φ = ynode(Center(), j, grid)
+    φ = ynode(j, grid, Center())
     return wind_stress(φ, p)
 end
 
 @inline function surface_salinity_flux(i, j, grid, clock, fields, p)
-    φ = ynode(Center(), j, grid)
+    φ = ynode(j, grid, Center())
     return salinity_flux(φ, p)
 end
 
 @inline T_reference(φ) = max(0.0, 30.0 * cos(1.2 * π * φ / 180))
 
 @inline function T_relaxation(i, j, grid, clock, fields, λ)
-    φ = ynode(Center(), j, grid)
+    φ = ynode(j, grid, Center())
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
