@@ -1,4 +1,3 @@
-using Oceananigans.BuoyancyModels: g_Earth
 using Oceananigans.Grids: minimum_xspacing, minimum_yspacing
 using Oceananigans.Utils 
 using Oceananigans.Units
@@ -6,19 +5,25 @@ using Oceananigans.Architectures: device
 using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
-using CUDA: synchronize
 using JLD2
 
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
-function barotropic_substeps(Δt, grid, gravitational_acceleration; CFL = 0.7)
-    wave_speed = sqrt(gravitational_acceleration * grid.Lz)
+function barotropic_substeps(Δt, grid; 
+                             g = Oceananigans.BuoyancyModels.g_Earth, 
+                             CFL = 0.7)
+    wave_speed = sqrt(g * grid.Lz)
     local_Δ    = 1 / sqrt(1 / minimum_xspacing(grid)^2 + 1 / minimum_yspacing(grid)^2)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
 
     return max(Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ))), 10)
 end
 
-experiment_depth(exp) = exp == :RealisticOcean ? 5244.5 : 3kilometers
+substeps(free_surface) = length(free_surface.settings.substepping.averaging_weights)
+experiment_depth(exp)  = exp == :RealisticOcean ? 5244.5 : 3kilometers
+
+# At the moment the simulation does not run for TEOS10 with the DoubleDrake initialization (srt(negative number))
+equation_of_state(::Val{E},            precision) where E = TEOS10EquationOfState(precision)
+equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfState(precision)
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  child_arch = GPU(),
@@ -60,12 +65,11 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     momentum_advection = VectorInvariant(vorticity_scheme = WENO(precision), 
                     					 vertical_scheme  = WENO(grid))
 
-    free_surface = SplitExplicitFreeSurface(precision; gravitational_acceleration = precision(g_Earth),
-					                                   substeps = barotropic_substeps(Δt, grid, g_Earth))
+    free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(Δt, grid))
 
-    @info "running with $(free_surface.settings.substeps) barotropic substeps"
+    @info "running with $(substeps(free_surface)) barotropic substeps"
 
-    buoyancy = SeawaterBuoyancy(precision; equation_of_state=TEOS10EquationOfState(precision))
+    buoyancy = SeawaterBuoyancy(precision; equation_of_state=equation_of_state(Val(experiment), precision))
     closure  = (vertical_diffusivity, boundary_layer_parameterization)
     
     coriolis = HydrostaticSphericalCoriolis(precision)

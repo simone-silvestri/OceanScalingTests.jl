@@ -1,10 +1,10 @@
 using PyCall
 
 """
-    interpolate_bathymetry_from_file(resolution, maximum_latitude; 
-                                     filename = "data/bathymetry-ice-21600x10800.jld2", 
-                                     interpolation_method = LinearInterpolation(), 
-                                     minimum_depth = 6)
+    interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude; 
+                                       interpolation_method = LinearInterpolation(),
+                                       minimum_depth = 6,
+                                       etopo1_file = datadep"etopo1_bathymetry/bathymetry-ice-21600x10800.jld2")
 
 Generate a latitude-longitude bathymetry array that spans `latitude = (-maximum_latitude, +maximum_latitude)`
 with size `(360 / resolution, 2maximum_latitude / resolution)`.
@@ -20,6 +20,7 @@ Keyword Arguments
 - `interpolation_method`: Either `LinearInterpolation()` (default), SpectralInterpolation(), or SplineInterpolation().
 - `minimum_depth`: The minimum depth of the bathymetry in meters. Anything less than `minimum_depth` is
                    considered land. Default `6` meters.
+- `etopo1_file`: path to jld2 datafile containing the ETOPO1 bathymetry
 ```
 """
 function interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude; 

@@ -9,9 +9,10 @@ using MPI
 end
 
 function coarse_simulation_runs(experiment, ranks)
-   simulation = OceanScalingTests.scaling_test_simulation(1/5, ranks, 10minutes, 60minutes; 
+   simulation = OceanScalingTests.scaling_test_simulation(1/5, ranks, 10minutes, 365days; 
                                                           child_arch = CPU(), Nz = 10, experiment)
 
+   simulation.stop_iteration = 10
    run!(simulation)
 
    return true
