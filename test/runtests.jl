@@ -1,4 +1,5 @@
 using OceanScalingTests
+using Oceananigans
 using Oceananigans.Units
 using Test
 using MPI
