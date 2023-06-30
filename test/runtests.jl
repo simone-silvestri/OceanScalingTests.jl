@@ -45,5 +45,5 @@ end
       println(error)
       fluxes = []
    end
-   @test_broken length(fluxes) == 36
+   @test_broken length(fluxes) == 73
 end

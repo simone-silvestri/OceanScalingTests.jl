@@ -6,3 +6,4 @@ launch.sh
 *.qdrep
 *.nsys-rep
 *.sqlite
+generate_bathymetry.jl
