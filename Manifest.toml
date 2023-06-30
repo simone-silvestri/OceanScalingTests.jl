@@ -2,7 +2,7 @@
 
 julia_version = "1.8.5"
 manifest_format = "2.0"
-project_hash = "86c982a563b5a2a19c21418ae285330471b33b09"
+project_hash = "894ab039e2345b6dbcf8db9d3bcabf83f4f0fad6"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -180,6 +180,12 @@ version = "1.0.0"
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
+[[deps.DiskArrays]]
+deps = ["OffsetArrays"]
+git-tree-sha1 = "cef3f9fdce9026de917240a7669e92b35fd07e7d"
+uuid = "3c3547ce-8d99-4f5e-a174-61eb10b00ae3"
+version = "0.3.13"
+
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
@@ -237,6 +243,12 @@ deps = ["Statistics"]
 git-tree-sha1 = "335bfdceacc84c5cdf16aadc768aa5ddfc5383cc"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.4"
+
+[[deps.Formatting]]
+deps = ["Printf"]
+git-tree-sha1 = "8339d61043228fdd3eb658d86c926cb282ae72a8"
+uuid = "59287772-0a20-5a39-b81b-1366585eb4c0"
+version = "0.4.2"
 
 [[deps.GPUArrays]]
 deps = ["Adapt", "GPUArraysCore", "LLVM", "LinearAlgebra", "Printf", "Random", "Reexport", "Serialization", "Statistics"]
@@ -498,6 +510,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "ce3269ed42816bf18d500c9f63418d4b0d9f5a3b"
 uuid = "e98f9f5b-d649-5603-91fd-7774390e6439"
 version = "3.1.0+2"
+
+[[deps.NetCDF]]
+deps = ["DiskArrays", "Formatting", "NetCDF_jll"]
+git-tree-sha1 = "328178762645783b20495d408ab317b4c2d25b1a"
+uuid = "30363a11-5582-574a-97bb-aa9a979735b9"
+version = "0.11.7"
 
 [[deps.NetCDF_jll]]
 deps = ["Artifacts", "Bzip2_jll", "HDF5_jll", "JLLWrappers", "LibCURL_jll", "Libdl", "XML2_jll", "Zlib_jll", "Zstd_jll"]

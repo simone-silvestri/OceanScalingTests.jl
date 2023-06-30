@@ -106,10 +106,10 @@ leap_year_days(year) = year == 1996 ||
 monthly_days(year) = [1:31, leap_year_days(year), 1:31, 1:30, 1:31, 1:30, 1:31, 1:31, 1:30, 1:31, 1:30, 1:31]
 
 iters = Int[]
-final_year = parse(Int, get(ENV, "FINALYEAR", "2000"))
-
+final_year  = parse(Int, get(ENV, "FINALYEAR", "2000"))
+final_month = parse(Int, get(ENV, "FINALMONTH", "12")) 
 for year in 1995:final_year
-    for month in 1:12
+    for month in 1:final_month
         for day in monthly_days(year)[month]
             push!(iters, parse(Int, string(year) * string(month, pad=2) * string(day, pad=2)))
         end
@@ -118,7 +118,7 @@ end
 
 # Starting from the 1st of January 1992
 it_collection = []
-for i = 1:length(iters)÷10
+for i = 1:length(iters)÷5
     push!(it_collection, iters[1+(i-1)*5:i*5+1])
 end
 

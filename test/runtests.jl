@@ -35,7 +35,8 @@ end
 end
 
 @testset "Generate RealisticOcean fluxes" begin
-   ENV["FINALYEAR"] = "1996"
+   ENV["FINALYEAR"]  = "1995"
+   ENV["FINALMONTH"] = "1"
    try
       include("../fluxes/generate_fluxes.jl")
 
@@ -45,5 +46,5 @@ end
       println(error)
       fluxes = []
    end
-   @test_broken length(fluxes) == 73
+   @test_broken length(fluxes) == 6
 end
