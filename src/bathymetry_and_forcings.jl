@@ -65,9 +65,9 @@ end
 
 # Assumes there is a jld2 file called bathymetry.jld2 in the data folder
 realistic_bathymetry(grid::DistributedGrid, resolution) = 
-      partition_global_array(architecture(grid), eltype(grid).(jldopen("data/bathymetry$(resolution).jld2")["bathymetry"]), size(grid))
+      partition_global_array(architecture(grid), eltype(grid).(jldopen("bathymetry/bathymetry$(resolution).jld2")["bathymetry"]), size(grid))
 
-realistic_bathymetry(grid, resolution) = eltype(grid).(jldopen("data/bathymetry$(resolution).jld2")["bathymetry"])
+realistic_bathymetry(grid, resolution) = eltype(grid).(jldopen("bathymetry/bathymetry$(resolution).jld2")["bathymetry"])
 
 @inline function cubic_profile(x1, x2, y1, y2, d1, d2)
     A = [ x1^3 x1^2 x1 1.0

@@ -144,8 +144,8 @@ function remove_connected_regions(bat)
     return bathymetry
 end
 
-function write_bathymetry_to_file(prefix, bathy, lat)
+function write_bathymetry_to_file(resolution, bathy)
     Nxₙ, Nyₙ = size(bathy)
-    output_prefix = prefix * "-$(Int(Nxₙ))x$(Int(Nyₙ))-latitude-$(lat)"
+    output_prefix = "bathymetry" * "$resoltion"
     jldsave(output_prefix * ".jld2", bathymetry = bathy)
 end

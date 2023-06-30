@@ -1,6 +1,9 @@
 __precompile__()
 module GenerateBathymetry
 
+export interpolate_bathymetry_from_ETOPO1, write_bathymetry_to_file
+export LinearInterpolation, SplineInterpolation, SpectralInterpolation
+
 using DataDeps
 using PyCall
 using JLD2
@@ -19,7 +22,7 @@ using Oceananigans.Grids: architecture
 const ABOVE_SEA_LEVEL = 0.001
 
 include("utils.jl")
-include("generate_bathymetry.jl")
+include("interpolate_bathymetry.jl")
 
 const sckikitimage = PyNULL()
 

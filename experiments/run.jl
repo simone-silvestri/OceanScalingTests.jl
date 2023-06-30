@@ -21,8 +21,8 @@ comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
 Nranks = MPI.Comm_size(comm)
 
-Ry = Int(sqrt(Nranks))
-Rx = Ry
+Ry = 1
+Rx = Nranks
 
 @show Rx, Ry
 
