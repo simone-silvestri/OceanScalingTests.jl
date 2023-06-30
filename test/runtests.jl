@@ -6,7 +6,7 @@ using MPI
    println("Hello world")
 end
 
-function run_doubledrake_simulation(ranks; experiment = :DoubleDrake)
+function coarse_simulation_runs(experiment, ranks)
    simulation = OceanScalingTests.scaling_test_simulation(1/5, ranks, 10minutes, stop_time; 
                                                           child_arch = CPU(), Nz = 10, experiment)
 
@@ -15,7 +15,7 @@ function run_doubledrake_simulation(ranks; experiment = :DoubleDrake)
    return true
 end
 
-@testset "DoubleDrake runs" begin
+@testset "Quiescent and DoubleDrake run" begin
    MPI.Init()
    
    comm   = MPI.COMM_WORLD
@@ -27,6 +27,7 @@ end
    
    ranks = (Rx, Ry, 1)
    
-   @test run_doubledrake_simulation(ranks)
+   @test coarse_simulation_runs(:Quiescent,   ranks)
+   @test coarse_simulation_runs(:DoubleDrake, ranks)
 end
    
