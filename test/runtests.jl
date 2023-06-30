@@ -3,7 +3,6 @@ using Oceananigans
 using Oceananigans.Units
 using Test
 using MPI
-using Pkg
 
 @testset "OceanScalingTests.jl" begin
    println("Hello world")
