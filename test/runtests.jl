@@ -7,7 +7,7 @@ using MPI
 end
 
 function run_doubledrake_simulation(ranks; experiment = :DoubleDrake)
-   simulation = OceanScalingTests.scaling_test_simulation(1/4, ranks, 10minutes, stop_time; 
+   simulation = OceanScalingTests.scaling_test_simulation(1/5, ranks, 10minutes, stop_time; 
                                                           child_arch = CPU(), Nz = 10, experiment)
 
    run!(simulation)
