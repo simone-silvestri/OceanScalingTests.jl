@@ -27,6 +27,6 @@ end
    
    ranks = (Rx, Ry, 1)
    
-   @test run_doubledrake_simulation()
+   @test run_doubledrake_simulation(ranks)
 end
    
