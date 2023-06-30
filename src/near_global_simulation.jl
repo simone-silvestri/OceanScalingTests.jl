@@ -21,10 +21,10 @@ end
 experiment_depth(exp) = exp == :RealisticOcean ? 5244.5 : 3kilometers
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
+                                 child_arch = GPU(),
                                  experiment = :Quiescent, 
                                  Depth = experiment_depth(experiment),
                                  latitude = (-75, 75),
-                                 use_buffers = true,
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
                                  Nz = 100,
@@ -34,10 +34,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 				                 precision = Float64,
 				                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
 
-    child_arch = GPU()
-
     topo = (Periodic, Bounded, Bounded)
-    arch = DistributedArch(child_arch; topology = topo, ranks, use_buffers)
+    arch = DistributedArch(child_arch; topology = topo, ranks)
 
     Lφ = latitude[2] - latitude[1]
 
