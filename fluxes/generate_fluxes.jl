@@ -108,11 +108,17 @@ monthly_days(year) = [1:31, leap_year_days(year), 1:31, 1:30, 1:31, 1:30, 1:31, 
 iters = Int[]
 final_year  = parse(Int, get(ENV, "FINALYEAR", "2000"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12")) 
-for year in 1995:final_year
-    for month in 1:final_month
+for year in 1995:final_year-1
+    for month in 1:12
         for day in monthly_days(year)[month]
             push!(iters, parse(Int, string(year) * string(month, pad=2) * string(day, pad=2)))
         end
+    end
+end
+year = final_year
+for month in 1:final_month
+    for day in monthly_days(year)[month]
+        push!(iters, parse(Int, string(year) * string(month, pad=2) * string(day, pad=2)))
     end
 end
 
