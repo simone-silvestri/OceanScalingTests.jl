@@ -31,8 +31,8 @@ function interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude;
     file = jldopen(etopo1_file)
     bathy_old = Float64.(file["bathymetry"])
 
-    Nx = Int(360 / resolution)
-    Ny = Int(2maximum_latitude / resolution)
+    Nx = Int(360 * resolution)
+    Ny = Int(2maximum_latitude * resolution)
 
     if interpolation_method isa SpectralInterpolation
         if interpolation_method.spectral_coeff isa nothing

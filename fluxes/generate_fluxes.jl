@@ -26,7 +26,7 @@ using JLD2
 end
 
 propagate_field!(field) =
-    launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, Nx, Ny)
+    launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, field.grid.Nx, field.grid.Ny)
 
 @kernel function _extend_vertically!(field, Nz)
     i, j = @index(Global, NTuple)
@@ -74,9 +74,9 @@ using Oceananigans.Grids: xnode, ynode, znode
 
 @kernel function _horizontal_interpolate!(new_field, old_field, new_grid, old_grid, loc)
     i, j, k = @index(Global, NTuple)
-    x = xnode(loc[1], i, new_grid)
-    y = ynode(loc[2], j, new_grid)
-    z = znode(loc[3], k, old_grid)
+    x = xnode(i, new_grid, loc[1])
+    y = ynode(j, new_grid, loc[2])
+    z = znode(k, old_grid, loc[3])
     
     new_field[i, j, k] = interpolate(old_field, loc..., old_grid, x, y, z)
 end
