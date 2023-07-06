@@ -118,7 +118,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
 
             jldsave("T_regridded_in_xz_at$(k).jld2", T = Array(interior(Tˣᶻ)))
             jldsave("S_regridded_in_xz_at$(k).jld2", S = Array(interior(Sˣᶻ)))
-        else
+        end
     end
 
     @info "Conclude by regridding in Y!!"
