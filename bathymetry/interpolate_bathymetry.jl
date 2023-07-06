@@ -147,4 +147,4 @@ function remove_connected_regions(bat)
 end
 
 write_bathymetry_to_file(resolution, bathy) = 
-    jldsave("bathymetry" * "$resolution" * ".jld2", bathymetry = bathy)
+    JLD2.jldsave("bathymetry" * "$resolution" * ".jld2", bathymetry = bathy)
