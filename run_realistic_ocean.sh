@@ -10,7 +10,12 @@ export WITHFLUXES=1
 export FINALYEAR=1995
 export FINALMONTH=2
 
-JULIA=julia
+# Julia specific enviromental variables
+export COMMON="/nobackup/users/ssilvest/perlmutter-test"
+export JULIA_DEPOT_PATH=":${COMMON}/depot"
+export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
+export JULIA_CUDA_MEMORY_POOL=none
+export JULIA=julia
 
 #####
 ##### We need to first generate a bathymetry
@@ -33,7 +38,7 @@ if test -f "$BATHYMETRY"; then
    echo "the bathymetry file already exists."
 else
     echo "regenerating bathymetry"
-    JULIA --project --check-bounds=no generate_bathymetry.jl
+    $JULIA --project --check-bounds=no generate_bathymetry.jl
 fi
 
 rm generate_bathymetry.jl
@@ -59,7 +64,7 @@ if test -f "fluxes_$FINALFLUXINDEX.jld2"; then
     echo "flux files already exist"
 else
     echo "regenerating fluxes"
-    JULIA --project --check-bounds=no write_fluxes.jl
+    $JULIA --project --check-bounds=no write_fluxes.jl
 fi
 
 rm write_fluxes.jl
@@ -69,4 +74,4 @@ rm write_fluxes.jl
 #####
 
 cd ../
-sbatch -N4 satori_job.sh
+sbatch -N1 satori_job.sh
