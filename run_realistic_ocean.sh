@@ -69,4 +69,4 @@ rm write_fluxes.jl
 #####
 
 cd ../
-### sbatch -N4 run_job.sh
+sbatch -N4 satori_job.sh
