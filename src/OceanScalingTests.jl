@@ -24,5 +24,6 @@ include("boundary_and_initial_conditions.jl")
 include("grid_load_balance.jl")
 include("near_global_simulation.jl")
 include("simulation_outputs.jl")
+include("utils.jl")
 
 end # module OceanScalingTests

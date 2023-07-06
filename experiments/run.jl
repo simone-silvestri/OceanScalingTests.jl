@@ -38,11 +38,19 @@ Nz          = parse(Int,  get(ENV, "NZ", "100"))
 loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision   = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 
+final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
+final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
+
 Δt = precision(45 * 48 / resolution)
 stop_time = 1000
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
+end
+
+if final_year >= 1995
+    rank == 0 && @info "simulation runs till" final_year final_month
+    stop_time = OceanScalingTests.realistic_ocean_stop_time(final_year, final_month)
 end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,

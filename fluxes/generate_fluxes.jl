@@ -94,30 +94,19 @@ end
     return nothing
 end
 
-# Doing the year 1995-2020
-leap_year_days(year) = year == 1996 || 
-                       year == 2000 || 
-                       year == 2004 || 
-                       year == 2008 || 
-                       year == 2012 || 
-                       year == 2016 || 
-                       year == 2020 ? UnitRange(1, 29) : UnitRange(1, 28)
-
-monthly_days(year) = [1:31, leap_year_days(year), 1:31, 1:30, 1:31, 1:30, 1:31, 1:31, 1:30, 1:31, 1:30, 1:31]
-
 iters = Int[]
 final_year  = parse(Int, get(ENV, "FINALYEAR", "2000"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12")) 
 for year in 1995:final_year-1
     for month in 1:12
-        for day in monthly_days(year)[month]
+        for day in OceanScalingTests.monthly_days(year)[month]
             push!(iters, parse(Int, string(year) * string(month, pad=2) * string(day, pad=2)))
         end
     end
 end
 year = final_year
 for month in 1:final_month
-    for day in monthly_days(year)[month]
+    for day in OceanScalingTests.monthly_days(year)[month]
         push!(iters, parse(Int, string(year) * string(month, pad=2) * string(day, pad=2)))
     end
 end
