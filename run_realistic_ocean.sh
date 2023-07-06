@@ -1,12 +1,25 @@
 #!/bin/bash
 
 # Let's first specify the enviromental variables
+
+# Grid size
 export RESOLUTION=12
-export LOADBALANCE=1
 export NZ=100
+
+# Experiment details
 export EXPERIMENT="RealisticOcean"
-export PROFILE=0
 export WITHFLUXES=1
+
+# Might increase performance when using a lot of cores (i.e. improves scalability)
+export LOADBALANCE=1
+
+# Do we want to profile or run a simulation?
+export PROFILE=0
+
+# How many nodes are we running on?
+export NNODES=1
+
+# The simulation always starts from 01/01/1995
 export FINALYEAR=1995
 export FINALMONTH=1
 
@@ -43,8 +56,8 @@ write_bathymetry_to_file(res, bat)
 EoF_s
 
 # check that the bathymetry exists and regenerate it if needed
-if test -f "$BATHYMETRY"; then
-   echo "the bathymetry file already exists."
+if [ test -f "$BATHYMETRY" ] || [ $EXPERIMENT -ne "RealisticOcean" ]; then
+   echo "the bathymetry file already exists or we are running the DoubleDrake experiment."
 else
     echo "regenerating bathymetry"
     $JULIA --project --check-bounds=no generate_bathymetry.jl
@@ -67,8 +80,8 @@ res = parse(Int, get(ENV, "RESOLUTION", "3"))
 generate_fluxes(res; arch = CPU())
 EoF_s
 
-if [ $REGENERATEFLUXES ] && [ $WITHFLUXES -eq 1 ]; then
-    echo "flux files already exist or running without fluxes"
+if [ $REGENERATEFLUXES ] || [ $WITHFLUXES -eq 0 ] || [ $EXPERIMENT -ne "RealisticOcean" ]; then
+    echo "flux files already exist or we are running without fluxes"
 else
     echo "regenerating fluxes"
     $JULIA --project --check-bounds=no write_fluxes.jl
@@ -84,7 +97,7 @@ Nz  = parse(Int, get(ENV, "NZ", "100"))
 regrid_initial_conditions(res, Nz; arch = CPU())
 EoF_s
 
-if [ $REGENERATEINITIALCONDITIONS ] && [ $RESTART -ne "" ]; then
+if [ $REGENERATEINITIALCONDITIONS ] || [ $RESTART -ne "" ] || [ $EXPERIMENT -ne "RealisticOcean" ]; then
     echo "initial condition files already exist or restarting from checkpoints"
 else
     echo "regenerating initial conditions"
@@ -98,4 +111,4 @@ rm generate_initial_conditions.jl
 #####
 
 cd ../
-sbatch -N1 satori_job.sh
+sbatch -N ${NNODES} satori_job.sh
