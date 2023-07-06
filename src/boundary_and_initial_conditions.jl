@@ -36,8 +36,8 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
           @info "loading level $k"
        end
 
-       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/T12y_at$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
-       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/S12y_at$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
+       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_T_at$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
+       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_S_at$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
     end
 
     set!(model, T = T_init, S = S_init)
@@ -134,7 +134,7 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
         @info "loading fluxes from file fluxes_$(filenum).jld2"
     end
 
-    file = jldopen("fluxes/fluxes_$(filenum).jld2")
+    file = jldopen("data/fluxes_$(filenum).jld2")
     
     # Garbage collect!!
     GC.gc()

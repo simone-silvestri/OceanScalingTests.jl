@@ -9,6 +9,8 @@ export PROFILE=0
 export WITHFLUXES=1
 export FINALYEAR=1995
 export FINALMONTH=2
+# Restart from interpolated fields
+export RESTART=""
 
 # Julia specific enviromental variables
 export COMMON="/nobackup/users/ssilvest/perlmutter-test"
@@ -26,8 +28,8 @@ cd bathymetry
 BATHYMETRY="bathymetry$RESOLUTION.jld2"
 
 cat > generate_bathymetry.jl << EoF_s
-include("GenerateBathymetry.jl")
-using .GenerateBathymetry
+include("GenerateData.jl")
+using .GenerateData
 res = parse(Int, get(ENV, "RESOLUTION", "3"))
 bat = interpolate_bathymetry_from_ETOPO1(res, 75; interpolation_method = LinearInterpolation(passes = 5))
 write_bathymetry_to_file(res, bat)
@@ -43,11 +45,19 @@ fi
 
 rm generate_bathymetry.jl
 
+# check that initial conditions exist and regenerate if needed
+if test -f "$BATHYMETRY"; then
+   echo "the bathymetry file already exists."
+else
+    echo "regenerating bathymetry"
+    $JULIA --project --check-bounds=no generate_bathymetry.jl
+fi
+
 #####
-##### Now we need to first generate daily fluxes
+##### Now we need to generate daily fluxes and initial conditions
 #####
 
-cd ../fluxes
+cd ../data
 
 # check fluxes exist up to the year/month we want to simulate
 FINALFLUXINDEX=$(((FINALYEAR-1995)*73+FINALMONTH*6+1))
@@ -57,7 +67,7 @@ echo $FINALFLUXINDEX
 cat > write_fluxes.jl << EoF_s
 include("generate_fluxes.jl")
 res = parse(Int, get(ENV, "RESOLUTION", "3"))
-generate_fluxes(parse(Int, get(ENV, "RESOLUTION", "3")); arch = CPU())
+generate_fluxes(res; arch = CPU())
 EoF_s
 
 if test -f "fluxes_$FINALFLUXINDEX.jld2"; then
@@ -68,6 +78,23 @@ else
 fi
 
 rm write_fluxes.jl
+
+# check initial conditions exist otherwise regrid
+cat > generate_initial_conditions.jl << EoF_s
+include("regrid_initial_conditions.jl")
+res = parse(Int, get(ENV, "RESOLUTION", "3"))
+Nz  = parse(Int, get(ENV, "NZ", "100"))
+regrid_initial_conditions(res, Nz; arch = CPU())
+EoF_s
+
+if test -f "initial_T_at_k1.jld2"; then
+    echo "initial condition files already exist"
+else
+    echo "regenerating initial conditions"
+    $JULIA --project --check-bounds=no generate_initial_conditions.jl
+fi
+
+rm generate_initial_conditions.jl
 
 #####
 ##### Now we can finally run our simulation
