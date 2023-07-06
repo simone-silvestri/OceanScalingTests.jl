@@ -1,3 +1,4 @@
+using OceanScalingTests
 using Oceananigans 
 using Oceananigans.BoundaryConditions
 using Oceananigans.Utils: launch!

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Let's first specify the enviromental variables
-export RESOLUTION=10
+export RESOLUTION=12
 export LOADBALANCE=1
 export NZ=100
 export EXPERIMENT="RealisticOcean"
