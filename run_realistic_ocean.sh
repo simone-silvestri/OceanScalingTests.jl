@@ -8,15 +8,22 @@ export EXPERIMENT="RealisticOcean"
 export PROFILE=0
 export WITHFLUXES=1
 export FINALYEAR=1995
-export FINALMONTH=2
-# Restart from interpolated fields
+export FINALMONTH=1
+
+# Restart from interpolated fields ? "" : "numer_of_checkpointer_to_restart_from"
 export RESTART=""
 
+# Shall we regenerate fluxes?
+export REGENERATEFLUXES=false
+
+# Shall we regenerate initial conditions?
+export REGENERATEINITIALCONDITIONS=true
+
 # Julia specific enviromental variables
-export COMMON="/nobackup/users/ssilvest/perlmutter-test"
-export JULIA_DEPOT_PATH=":${COMMON}/depot"
-export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
-export JULIA_CUDA_MEMORY_POOL=none
+# export COMMON="/nobackup/users/ssilvest/perlmutter-test"
+# export JULIA_DEPOT_PATH=":${COMMON}/depot"
+# export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
+# export JULIA_CUDA_MEMORY_POOL=none
 export JULIA=julia
 
 #####
@@ -45,14 +52,6 @@ fi
 
 rm generate_bathymetry.jl
 
-# check that initial conditions exist and regenerate if needed
-if test -f "$BATHYMETRY"; then
-   echo "the bathymetry file already exists."
-else
-    echo "regenerating bathymetry"
-    $JULIA --project --check-bounds=no generate_bathymetry.jl
-fi
-
 #####
 ##### Now we need to generate daily fluxes and initial conditions
 #####
@@ -60,9 +59,7 @@ fi
 cd ../data
 
 # check fluxes exist up to the year/month we want to simulate
-FINALFLUXINDEX=$(((FINALYEAR-1995)*73+FINALMONTH*6+1))
-
-echo $FINALFLUXINDEX
+echo $REGENERATEFLUXES
 
 cat > write_fluxes.jl << EoF_s
 include("generate_fluxes.jl")
@@ -70,8 +67,8 @@ res = parse(Int, get(ENV, "RESOLUTION", "3"))
 generate_fluxes(res; arch = CPU())
 EoF_s
 
-if test -f "fluxes_$FINALFLUXINDEX.jld2"; then
-    echo "flux files already exist"
+if [ $REGENERATEFLUXES ] && [ $WITHFLUXES -eq 1 ]; then
+    echo "flux files already exist or running without fluxes"
 else
     echo "regenerating fluxes"
     $JULIA --project --check-bounds=no write_fluxes.jl
@@ -87,8 +84,8 @@ Nz  = parse(Int, get(ENV, "NZ", "100"))
 regrid_initial_conditions(res, Nz; arch = CPU())
 EoF_s
 
-if test -f "initial_T_at_k1.jld2"; then
-    echo "initial condition files already exist"
+if [ $REGENERATEINITIALCONDITIONS ] && [ $RESTART -ne "" ]; then
+    echo "initial condition files already exist or restarting from checkpoints"
 else
     echo "regenerating initial conditions"
     $JULIA --project --check-bounds=no generate_initial_conditions.jl

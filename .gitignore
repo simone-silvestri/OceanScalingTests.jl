@@ -8,3 +8,4 @@ launch.sh
 *.sqlite
 generate_bathymetry.jl
 write_fluxes.jl
+generate_initial_conditions.jl
