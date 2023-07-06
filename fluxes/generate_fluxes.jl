@@ -145,7 +145,7 @@ end
 function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arch = GPU(), 
                                            max_val = nothing, location = (Center, Center, Center))
 
-    grid_cs510 = RectilinearGrid(arch, size = (1440, 720, 1), y = (-90, 90), x = (-180, 180), z = (0, 1)) 
+    grid_cs510 = RectilinearGrid(arch, size = (1440, 720, 1), y = (-90, 90), x = (-180, 180), z = (0, 1), topology = (Periodic, Bounded, Bounded)) 
     cs_field = Field{location...}(grid_cs510)
 
     interp = if location[2] == Face
@@ -162,7 +162,7 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
         
         Nφ = Int(Ny / Nj)
                     
-        new_grid = RectilinearGrid(arch; size = (Nx, Nφ, 1), y = latitude, x = (-180, 180), z = (0, 1)) 
+        new_grid = RectilinearGrid(arch; size = (Nx, Nφ, 1), y = latitude, x = (-180, 180), z = (0, 1), topology = (Periodic, Bounded, Bounded)) 
         my_field = Field{location...}(new_grid)
         my_tmp2  = Field{location...}(new_grid)
 
