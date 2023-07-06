@@ -28,8 +28,8 @@ cd bathymetry
 BATHYMETRY="bathymetry$RESOLUTION.jld2"
 
 cat > generate_bathymetry.jl << EoF_s
-include("GenerateData.jl")
-using .GenerateData
+include("GenerateBathymetry.jl")
+using .GenerateBathymetry
 res = parse(Int, get(ENV, "RESOLUTION", "3"))
 bat = interpolate_bathymetry_from_ETOPO1(res, 75; interpolation_method = LinearInterpolation(passes = 5))
 write_bathymetry_to_file(res, bat)
