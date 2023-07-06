@@ -74,9 +74,9 @@ using Oceananigans.Grids: xnode, ynode, znode
 
 @kernel function _horizontal_interpolate!(new_field, old_field, new_grid, old_grid, loc)
     i, j, k = @index(Global, NTuple)
-    x = xnode(i, new_grid, loc[1])
-    y = ynode(j, new_grid, loc[2])
-    z = znode(k, old_grid, loc[3])
+    x = xnode(i, j, k, new_grid, loc...)
+    y = ynode(i, j, k, new_grid, loc...)
+    z = znode(i, j, k, old_grid, loc...)
     
     new_field[i, j, k] = interpolate(old_field, loc..., old_grid, x, y, z)
 end

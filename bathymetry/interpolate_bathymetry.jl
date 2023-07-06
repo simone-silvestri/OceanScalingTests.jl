@@ -1,4 +1,5 @@
 using PyCall
+using JLD2 
 
 """
     interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude; 
@@ -145,8 +146,5 @@ function remove_connected_regions(bat)
     return bathymetry
 end
 
-function write_bathymetry_to_file(resolution, bathy)
-    Nxₙ, Nyₙ = size(bathy)
-    output_prefix = "bathymetry" * "$resoltion"
-    jldsave(output_prefix * ".jld2", bathymetry = bathy)
-end
+write_bathymetry_to_file(resolution, bathy) = 
+    jldsave("bathymetry" * "$resolution" * ".jld2", bathymetry = bathy)
