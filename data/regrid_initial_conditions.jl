@@ -11,6 +11,7 @@ using KernelAbstractions: @index, @kernel, @synchronize
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
 include("interpolation_utils.jl")
+include("download_datasets.jl")
 
 @inline exponential_profile(z; Lz, h) = (exp(z / h) - exp( - Lz / h)) / (1 - exp( - Lz / h)) 
 
@@ -27,15 +28,9 @@ function exponential_z_faces(Nz, Depth; h = Nz / 4.5)
     return reverse(z_faces)
 end
 
-datadep"quarter_degree_near_global_lat_lon"
-
-datadep_path = @datadep_str "quarter_degree_near_global_lat_lon/z_faces-50-levels.jld2"
-file_z_faces = jldopen(datadep_path)
-ECCO_z_faces = file_z_faces["z_faces"][3:end];
-
 function regrid_initial_conditions(resolution, Nz; arch = GPU(), 
                                    regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces,
-                                   filepath = "evolved-initial-conditions-1105days.jld2")
+                                   filepath = datadep"initial_conditions/evolved-initial-conditions-365days.jld2")
 
     file_init = jldopen(filepath)
 
@@ -91,7 +86,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
 
     @info "Finished regridding in z"
 
-    # The regridding will now be done per level to avoid OOM errors
+    # The regridding is done per level to avoid OOM errors
     gridᶻ¹ = LatitudeLongitudeGrid(arch, size = (nx, ny, 1),
                                   longitude = (-180, 180),
                                   latitude = (-75, 75),
