@@ -29,7 +29,7 @@ function exponential_z_faces(Nz, Depth; h = Nz / 4.5)
 end
 
 function regrid_initial_conditions(resolution, Nz; arch = GPU(), 
-                                   regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces,
+                                   regrid_in_z = true, regrid_in_x = false, z_faces = ECCO_z_faces,
                                    filepath = datadep"initial_conditions/evolved-initial-conditions-365days.jld2")
 
     file_init = jldopen(filepath)
@@ -134,7 +134,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         @info "regridding level $(k)"
 
         set!(Tˣᶻ, jldopen("T_regridded_in_xz_at$(k).jld2")["T"])
-        set!(Sˣᶻ, jldopen("S_regridded_in_xz_at$(k).jld2")["T"])
+        set!(Sˣᶻ, jldopen("S_regridded_in_xz_at$(k).jld2")["S"])
 
         fill_halo_regions!((Tˣᶻ, Sˣᶻ))
         

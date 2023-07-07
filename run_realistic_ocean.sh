@@ -12,7 +12,7 @@ export NZ=100
 
 # Experiment details
 export EXPERIMENT="RealisticOcean"
-export WITHFLUXES=1
+export WITHFLUXES=0
 export PRECISION="Float64"
 
 # Might increase performance when using a lot of cores (i.e. improves scalability)
@@ -36,10 +36,10 @@ export REGENERATEFLUXES=0
 export REGENERATEINITIALCONDITIONS=1
 
 # Julia specific enviromental variables
-export COMMON="/nobackup/users/ssilvest/perlmutter-test"
-export JULIA_DEPOT_PATH=":${COMMON}/depot"
-export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
-export JULIA_CUDA_MEMORY_POOL=none
+# export COMMON="/nobackup/users/ssilvest/perlmutter-test"
+# export JULIA_DEPOT_PATH=":${COMMON}/depot"
+# export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
+# export JULIA_CUDA_MEMORY_POOL=none
 export JULIA=julia
 
 # ====================================================== #
@@ -85,9 +85,12 @@ res = parse(Int, get(ENV, "RESOLUTION", "3"))
 generate_fluxes(res; arch = CPU())
 EoF_s
 
-if test $REGENERATEFLUXES == 0 || test $EXPERIMENT != "RealisticOcean" || test $WITHFLUXES == 0 ; then
-    echo "flux files already exist or we are running without fluxes"
+if test $REGENERATEFLUXES == 0 ; then
+    echo "we are not regenerating the fluxes"
 else
+    if test $EXPERIMENT != "RealisticOcean" || test $WITHFLUXES == 0 ; then
+        echo "WARNING!! we are regenerating the fluxes but they are not needed for this simulation"
+    fi
     echo "regenerating fluxes"
     $JULIA --project --check-bounds=no write_fluxes.jl
 fi
@@ -102,9 +105,12 @@ Nz  = parse(Int, get(ENV, "NZ", "100"))
 regrid_initial_conditions(res, Nz; arch = CPU())
 EoF_s
 
-if test $REGENERATEINITIALCONDITIONS == 0 || test ! -z $RESTART  || test $EXPERIMENT != "RealisticOcean" ; then
-    echo "initial condition files already exist or restarting from checkpoints"
+if test $REGENERATEINITIALCONDITIONS == 0 ; then
+    echo "we are not regenerating the initial conditions"
 else
+    if test ! -z $RESTART  || test $EXPERIMENT != "RealisticOcean" ; then
+        echo "WARNING!! we are regenerating the initial conditions but it is not needed for this simulation"
+    fi
     echo "regenerating initial conditions"
     $JULIA --project --check-bounds=no generate_initial_conditions.jl
 fi

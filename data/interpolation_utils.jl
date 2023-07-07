@@ -36,7 +36,7 @@ propagate_field!(field) =
 end
 
 extend_vertically!(field) =
-    launch!(architecture(field.grid), field.grid, :xyz, _extend_vertically!, field, size(grid, 3))
+    launch!(architecture(field.grid), field.grid, :xyz, _extend_vertically!, field, size(field.grid, 3))
 
 @kernel function _horizontal_filter!(new_field, field)
     i, j, k = @index(Global, NTuple)
