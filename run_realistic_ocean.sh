@@ -12,7 +12,7 @@ export NZ=100
 
 # Experiment details
 export EXPERIMENT="RealisticOcean"
-export WITHFLUXES=0
+export WITHFLUXES=1
 export PRECISION="Float64"
 
 # Might increase performance when using a lot of cores (i.e. improves scalability)
@@ -22,7 +22,7 @@ export LOADBALANCE=1
 export PROFILE=0
 
 # How many nodes are we running on?
-export NNODES=1
+export NNODES=2
 
 # For :RealisticOcean the simulation always starts from 01/01/1995, when does it end?
 export FINALYEAR=1995
@@ -32,15 +32,11 @@ export FINALMONTH=1
 export RESTART=""
 
 # Shall we regenerate fluxes? Shall we regenerate initial conditions?
-export REGENERATEFLUXES=0
+export REGENERATEFLUXES=1
 export REGENERATEINITIALCONDITIONS=1
 
-# Julia specific enviromental variables
-# export COMMON="/nobackup/users/ssilvest/perlmutter-test"
-# export JULIA_DEPOT_PATH=":${COMMON}/depot"
-# export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
-# export JULIA_CUDA_MEMORY_POOL=none
-export JULIA=julia
+# Server specific enviromental variables and modules
+source satori/setup_satori.sh
 
 # ====================================================== #
 # ================ PREPARATORY ACTIONS ================= #
@@ -125,5 +121,5 @@ rm generate_initial_conditions.jl
 ##### Now we can finally run our simulation
 #####
 
-# cd ../
-# sbatch -N ${NNODES} satori_job.sh
+cd ../
+sbatch -N ${NNODES} satori_job.sh
