@@ -5,6 +5,7 @@ using Oceananigans.Utils: launch!
 using Oceananigans.Architectures
 using Oceananigans.Architectures: architecture
 using Oceananigans.Distributed
+using Oceananigans.Grids: node
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
@@ -75,9 +76,7 @@ using Oceananigans.Grids: xnode, ynode, znode
 
 @kernel function _horizontal_interpolate!(new_field, old_field, new_grid, old_grid, loc)
     i, j, k = @index(Global, NTuple)
-    x = xnode(i, j, k, new_grid, loc...)
-    y = ynode(i, j, k, new_grid, loc...)
-    z = znode(i, j, k, old_grid, loc...)
+    x, y, z = node(i, j, k, new_grid, loc...)
     
     new_field[i, j, k] = interpolate(old_field, loc..., old_grid, x, y, z)
 end
