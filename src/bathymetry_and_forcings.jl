@@ -4,7 +4,9 @@ using Oceananigans.Distributed: DistributedGrid, partition_global_array
 using Oceananigans.Operators
 using DataDeps
 
-function z_from_ecco(Nz, Depth)
+ECCO_z_faces(Nz, Depth) = ECCO_z_faces(Nz)
+
+function ECCO_z_faces(Nz = 48)
 
     if Nz != 48
 	    throw(ArgumentError("Not ecco grid!!"))

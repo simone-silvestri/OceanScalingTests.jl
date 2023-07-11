@@ -9,6 +9,7 @@ using JLD2
 using Statistics: dot
 using KernelAbstractions: @index, @kernel, @synchronize
 using KernelAbstractions.Extras.LoopInfo: @unroll
+using OceanScalingTests: ECCO_z_faces
 
 include("interpolation_utils.jl")
 include("download_datasets.jl")
@@ -29,7 +30,7 @@ function exponential_z_faces(Nz, Depth; h = Nz / 4.5)
 end
 
 function regrid_initial_conditions(resolution, Nz; arch = GPU(), 
-                                   regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces,
+                                   regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces(),
                                    filepath = datadep"initial_conditions/evolved-initial-conditions-365days.jld2")
 
     file_init = jldopen(filepath)
