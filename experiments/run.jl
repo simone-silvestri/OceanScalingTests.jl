@@ -5,17 +5,15 @@ if iscray
     import Libdl
     Libdl.dlopen_e("libmpi_gtl_cuda", Libdl.RTLD_LAZY | Libdl.RTLD_GLOBAL)
 end
+using MPI
+MPI.Init()
+
 using OceanScalingTests
 using Oceananigans
 using Oceananigans.Units
 using Oceananigans.Utils: prettytime
 using NVTX
-using MPI
 using JLD2
-
-using Oceananigans.Models.HydrostaticFreeSurfaceModels
-
-MPI.Init()
 
 comm   = MPI.COMM_WORLD
 rank   = MPI.Comm_rank(comm)
@@ -60,7 +58,7 @@ if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)
     OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
     
-    pickup = isempty(restart) ? false :  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+    pickup_file = isempty(restart) ? false :  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
     run!(simulation, pickup = pickup_file)
 
     @info "simulation took $(prettytime(simulation.run_wall_time))"
