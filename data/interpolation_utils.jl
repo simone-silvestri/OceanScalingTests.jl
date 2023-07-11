@@ -14,11 +14,13 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     ns = ifelse(j == 1 , 0.0,             field[i, j - 1, k])
     ne = ifelse(i == Nx, field[1, j, k],  field[i + 1, j, k])
     nn = ifelse(j == Ny, 0.0,             field[i, j + 1, k])
-    nn = (nw, ne, nn, ns)
-    pos = Int.(nn .!= 0)
+    nb = (nw, ne, nn, ns)
+    pos = Int.(nb .!= 0)
+
+    @synchronize 
 
     if (field[i, j, k] == 0) & (sum(pos) > 0)
-        field[i, j, k] = dot(pos, nn) / sum(pos) 
+        field[i, j, k] = dot(pos, nb) / sum(pos) 
     end
 end
 
@@ -44,6 +46,8 @@ extend_vertically!(field) =
     new_field[i, j, k] = field[i, j, k]
     nn = (field[i, j, k], field[i + 1, j, k], field[i - 1, j, k], field[i, j + 1, k], field[i, j - 1, k])
     non_null  = Int.(nn .!= 0)
+
+    @synchronize
 
     if sum(non_null) > 0
         new_field[i, j, k] = sum(nn) / sum(non_null)
