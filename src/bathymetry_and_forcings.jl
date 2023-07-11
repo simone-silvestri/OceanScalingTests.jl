@@ -1,6 +1,7 @@
-using Oceananigans.Grids: ynode
+using Oceananigans.Grids: φnode
 using Oceananigans.Distributed
 using Oceananigans.Distributed: DistributedGrid, partition_global_array
+using Oceananigans.Operators
 using DataDeps
 
 function z_from_ecco(Nz, Depth)
@@ -124,8 +125,6 @@ end
     return coeff[1] * φ^3 + coeff[2] * φ^2 + coeff[3] * φ + coeff[4]
 end
 
-using Oceananigans.Operators
-
 @inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
 @inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
@@ -141,19 +140,19 @@ using Oceananigans.Operators
 @inline v_linear_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1]
 
 @inline function surface_stress_x(i, j, grid, clock, fields, p)
-    φ = ynode(j, grid, Center())
+    φ = φnode(j, grid, Center())
     return wind_stress(φ, p)
 end
 
 @inline function surface_salinity_flux(i, j, grid, clock, fields, p)
-    φ = ynode(j, grid, Center())
+    φ = φnode(j, grid, Center())
     return salinity_flux(φ, p)
 end
 
 @inline T_reference(φ) = max(0.0, 30.0 * cos(1.2 * π * φ / 180))
 
 @inline function T_relaxation(i, j, grid, clock, fields, λ)
-    φ = ynode(j, grid, Center())
+    φ = φnode(j, grid, Center())
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
