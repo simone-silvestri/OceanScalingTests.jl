@@ -25,6 +25,16 @@ experiment_depth(exp)  = exp == :RealisticOcean ? 5244.5 : 3kilometers
 equation_of_state(::Val{E},            precision) where E = TEOS10EquationOfState(precision)
 equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfState(precision)
 
+using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConservingScheme
+
+previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
+                                                                vertical_scheme = WENO(grid),
+                                                             ke_gradient_scheme = EnergyConservingScheme(precision),
+                                                                      upwinding = CrossAndSelfUpwinding()) 
+
+best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
+                                                            vertical_scheme = WENO(grid))
+
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  child_arch = GPU(),
                                  experiment = :Quiescent, 
@@ -36,8 +46,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  profile = false,
                                  with_fluxes = true,
                                  loadbalance = true,
-				                 precision = Float64,
-				                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
+                                 precision = Float64,
+                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
 
     topo = (Periodic, Bounded, Bounded)
     arch = DistributedArch(child_arch; topology = topo, ranks)
@@ -62,8 +72,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
     tracer_advection   = WENO(grid)
-    momentum_advection = VectorInvariant(vorticity_scheme = WENO(precision), 
-                    					 vertical_scheme  = WENO(grid))
+    momentum_advection = previous_momentum_advection(grid, precision)
 
     free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(Δt, grid))
 
@@ -109,7 +118,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         return nothing
     end
     
-    initialize_model!(model, Val(experiment); restart)
+    # initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
     #####
@@ -146,7 +155,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         if with_fluxes
             simulation.callbacks[:update_fluxes] = Callback(update_fluxes, TimeInterval(5days))
         end
-        simulation.callbacks[:garbage_collect] = Callback((sim) -> Threads.@spawn GC.gc(), IterationInterval(50))
+        ## simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
     end
 
     return simulation
@@ -180,7 +189,7 @@ function profiled_time_steps!(model, Δt, resolution; gc_steps = 10, profiled_st
     MPI.Allreduce!(elapsed_time, +, MPI.COMM_WORLD)
 
     if rank == 0
-        file = "time_res$(resolution)_ranks$(nranks)_prec$(eltype(model.grid)).jld2"
+	file = "time_res$(resolution)_NZ$(model.grid.Nz)_ranks$(nranks)_prec$(eltype(model.grid)).jld2"
         while isfile(file)
 	        file = "new_" * file
         end
