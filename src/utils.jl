@@ -16,11 +16,11 @@ function realistic_ocean_stop_time(final_year, final_month = 12)
     # Starts from 01/01/1995
     for year in 1995:final_year-1
         days_in_month = monthly_days(year)
-        simulation_days += sum(days_in_month[m][2] * days for m in 1:12)
+	simulation_days += sum(days_in_month[m][end] for m in 1:12)
     end
 
     days_in_month = monthly_days(final_year)
-    simulation_days += sum(days_in_month[m][2] * days for m in 1:final_month)
+    simulation_days += sum(days_in_month[m][end] for m in 1:final_month)
 
-    return simulation_days
+    return simulation_days * days 
 end

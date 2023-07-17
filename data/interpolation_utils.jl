@@ -6,7 +6,7 @@ using Oceananigans.Architectures
 using Oceananigans.Architectures: architecture
 using Oceananigans.Distributed
 using Oceananigans.Grids: node
-using KernelAbstractions: @kernel, @index
+using KernelAbstractions: @kernel, @index, @synchronize
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
 @kernel function _propagate_field!(field, Nx, Ny)

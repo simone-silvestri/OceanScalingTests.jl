@@ -10,7 +10,7 @@ returns a grid which is balanced as much as possible, i.e. we try as much as pos
 number of active cells in all the ranks. This is not always possible, especially for a low number
 of GPUs where the memory is already full when all Nx are the same.
 
-The load balancing is activated id `balance == true` and `experiment == :RealisticOcean`
+The load balancing is activated if `balance == true` and `experiment == :RealisticOcean`
 In any case, the computational grid has an active cells map to elide computations in the immersed domain
 """
 function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution, 
@@ -58,10 +58,11 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
     # so for a small number of GPUs we are limited in the load balancing
     redistribute_size_to_fulfill_memory_limitation!(local_N, 1150)
 
-    rank = MPI.Comm_rank(MPI.COMM_WORLD)
-    N    = (local_N[rank+1], N[2], N[3])
+    zonal_rank = arch.local_index[1]
+    
+    N = (local_N[zonal_rank], N[2] ÷ arch.ranks[2], N[3])
 
-    @info "slab decomposition with " rank N
+    @info "slab decomposition with " zonal_rank N
 
     @show underlying_grid = LatitudeLongitudeGrid(arch, precision;
                                                   size = N,
