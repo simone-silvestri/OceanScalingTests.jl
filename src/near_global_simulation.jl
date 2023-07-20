@@ -153,10 +153,12 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
     
     if experiment == :RealisticOcean 
-        with_fluxes &&
+        if with_fluxes 
             simulation.callbacks[:update_fluxes] = Callback(update_fluxes!, TimeInterval(5days))
-        with_restoring && 
+        end
+        if with_restoring 
             simulation.callbacks[:update_fluxes] = Callback(update_restoring!, TimeInterval(15days))
+        end
         ## simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
     end
 
