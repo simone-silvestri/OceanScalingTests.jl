@@ -26,8 +26,7 @@ export NNODES=2
 
 # For :RealisticOcean the simulation always starts from 01/01/1995, when does it end?
 export FINALYEAR=1995
-export FINALMONTH=1
-export REPEATYEAR=1995
+export FINALMONTH=12
 
 # Restart from interpolated fields ? "" : "numer_of_iteration_to_restart_from"
 export RESTART=""
