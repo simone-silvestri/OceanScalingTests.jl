@@ -24,7 +24,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                 size = (Nx, Ny, Nz),
                                 longitude = (-180, 180),
                                 latitude = latitude,
-                                halo = (5, 5, 5),
+                                halo = (7, 7, 7),
                                 z = z_faces)
 
     return experiment == :RealisticOcean ? 
@@ -41,7 +41,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                         size = N,
                         longitude = (-180, 180),
                         latitude = latitude,
-                        halo = (5, 5, 5),
+                        halo = (7, 7, 7),
                         z = z_faces)
 
     ibg = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution))) 
@@ -68,7 +68,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                                   size = N,
                                                   longitude = (-180, 180),
                                                   latitude = latitude,
-                                                  halo = (5, 5, 5),
+                                                  halo = (7, 7, 7),
                                                   z = z_faces)
 
     return ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) 
