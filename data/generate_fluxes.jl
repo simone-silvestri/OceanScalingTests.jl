@@ -172,7 +172,7 @@ function generate_restoring(resolution; arch = GPU())
 
     tmp  = zeros(Nx÷2, Ny, 6)
 
-    for (idx, iterations) in enumerate(it_collection)
+    for (idx, iterations) in enumerate(it_collection_restoring)
 	    if !isfile("restoring_$(idx).jld2")
             Tr = read_and_interpolate_quarter_flux("THETA", iterations, Nx, Ny; full_field = true, arch, max_val = 1e8)
             Sr = read_and_interpolate_quarter_flux("SALT",  iterations, Nx, Ny; full_field = true, arch, max_val = 1e8)
