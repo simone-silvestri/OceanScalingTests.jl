@@ -22,13 +22,21 @@ for month in 1:final_month
     end
 end
 
+iters_restoring = [iters[i] for i in 1:3:length(iters)]
+
 # Starting from the 1st of January 1992
 it_collection = []
 for i = 1:length(iters)÷5
     push!(it_collection, iters[1+(i-1)*5:i*5+1])
 end
 
-jldsave("list_of_days.jld2", list = it_collection)
+# Starting from the 1st of January 1992
+it_collection_restoring = []
+for i = 1:length(iters_restoring)÷5
+    push!(it_collection_restoring, iters_restoring[1+(i-1)*5:i*5+1])
+end
+
+jldsave("list_of_days.jld2", list_fluxes = it_collection, list_restoring = it_collection_restoring)
 
 YField = Field{<:Center, <:Face, <:Center}
 set_field!(f::Field, a) = set!(f, a)
@@ -43,7 +51,8 @@ function set_field!(f::YField, a)
 end
 
 function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arch = GPU(), 
-                                           max_val = nothing, location = (Center, Center, Center))
+                                           max_val = nothing, location = (Center, Center, Center),
+                                           full_field = false)
 
     grid_cs510 = RectilinearGrid(arch, size = (1440, 720, 1), y = (-90, 90), x = (-180, 180), z = (0, 1), topology = (Periodic, Bounded, Bounded)) 
     cs_field = Field{location...}(grid_cs510)
@@ -71,16 +80,20 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
         for (idx, iter) in enumerate(iterations)
 
             file = "$(name).1440x720.$(iter).nc"
-
+            suffix = full_field ? "" : "_daily"
             # Downloading files
-            url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/$(name)_daily.nc/$(file)"
+            url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/$(name)$(suffix).nc/$(file)"
             cmd = `wget --http-user=ssilvestri --http-passwd=ZZjQeLy7oIHwvqMWvM8y $(url)`
                             
             !isfile(file) && run(cmd)
 
             @info "interpolating file $file"
 
-            set_field!(cs_field, ncread(file, name))
+            if full_field
+                set_field!(cs_field, ncread(file, name)[:, :, 1])
+            else
+                set_field!(cs_field, ncread(file, name)[:, :, 1])
+            end
             fix_max_val!(cs_field, max_val)
 
             fill_halo_regions!(cs_field)
@@ -147,6 +160,31 @@ function generate_fluxes(resolution; arch = GPU())
             jldsave("fluxes_$(idx).jld2", τx = τx, τy = τy, Qs = Qs, Fs = Fs)
         else
             @info "fluxes_$(idx).jld2 already exists!!"
+        end
+    end
+end
+
+function generate_restoring(resolution; arch = GPU())
+
+    # grid size
+    Nx = Int(360 * resolution) 
+    Ny = Int(150 * resolution)
+
+    tmp  = zeros(Nx÷2, Ny, 6)
+
+    for (idx, iterations) in enumerate(it_collection)
+	    if !isfile("fluxes_$(idx).jld2")
+            Tr = read_and_interpolate_quarter_flux("THETA", iterations, Nx, Ny; full_field = true, arch, max_val = 1e8)
+            Sr = read_and_interpolate_quarter_flux("SALT",  iterations, Nx, Ny; full_field = true, arch, max_val = 1e8)
+
+            @info "Correcting restoring"
+            transpose_flux!(Tr, tmp)
+            transpose_flux!(Sr, tmp)
+
+            @info "saving down restoring $idx"
+            jldsave("restoring_$(idx).jld2", τx = τx, τy = τy, Qs = Qs, Fs = Fs)
+        else
+            @info "restoring_$(idx).jld2 already exists!!"
         end
     end
 end

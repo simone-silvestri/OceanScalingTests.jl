@@ -158,11 +158,54 @@ end
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-# Fluxes are saved as [Nt, Nx, Ny] where Nt = 1:6 and represents day 0 to day 5
+@inline function indices_in_days(time_in_days, tot_days)
+    n  = mod(time_in_days, tot_days) + 1
+    n₁ = Int(floor(n))
+    n₂ = Int(n₁ + 1)    
+
+    return n, n₁, n₂
+end
+
+# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 5
 @inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
     return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
+end
+
+# Restorings are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 15 (in steps of 3)
+@inline function flux_and_restoring_T(i, j, grid, clock, fields, p)
+    time_in_days = clock.time / 1days
+    n  = mod(time_in_days, 5) + 1
+    n₁ = Int(floor(n))
+    n₂ = Int(n₁ + 1)    
+    flux = p.Qs[i, j, n₁] * (n₂ - n) + p.Qs[i, j, n₂] * (n - n₁)
+
+    n  = mod(time_in_days, 15) ÷ 3 + 1
+    n₁ = Int(floor(n))
+    n₂ = Int(n₁ + 1)    
+    Tr = p.T_restoring[i, j, n] * (n₂ - n) + p.T_restoring[i, j, n₂] * (n - n₁)
+    restoring = p.λ * (Tr - fields.T[i, j, grid.Nz])
+
+    return flux + restoring
+end
+
+# Restorings are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 15 (in steps of 3)
+@inline function flux_and_restoring_S(i, j, grid, clock, fields, p)
+    time_in_days = clock.time / 1days
+
+    n  = mod(time_in_days, 5) + 1
+    n₁ = Int(floor(n))
+    n₂ = Int(n₁ + 1)    
+    flux = p.Fs[i, j, n₁] * (n₂ - n) + p.Fs[i, j, n₂] * (n - n₁)
+
+    n  = mod(time_in_days, 15) ÷ 3 + 1
+    n₁ = Int(floor(n))
+    n₂ = Int(n₁ + 1)    
+    Sr = p.S_restoring[i, j, n] * (n₂ - n) + p.S_restoring[i, j, n₂] * (n - n₁)
+    restoring = p.λ * (Sr - fields.S[i, j, grid.Nz])
+
+    return flux + restoring
 end
