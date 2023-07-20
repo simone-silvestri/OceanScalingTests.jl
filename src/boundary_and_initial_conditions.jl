@@ -184,7 +184,7 @@ function load_restoring!(grid, Tr, Sr, filenum)
 end
 
 # Update fluxes through a Callback every 5days.
-@inline function update_fluxes(sim)
+@inline function update_fluxes!(sim)
 
     # Repeat year does mod(time, 365) otherwise take out the mod
     filenum = mod(Int(sim.model.clock.time ÷ 5days), 365) + 1
@@ -208,7 +208,7 @@ end
 end
 
 # Update restoring through a Callback every 15days.
-@inline function update_restoring(sim)
+@inline function update_restoring!(sim)
 
     # Repeat year does mod(time, 365) otherwise take out the mod
     filenum = mod(Int(sim.model.clock.time ÷ 15days), 365) + 1
