@@ -48,8 +48,8 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
 
     ibg = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(realistic_bathymetry(underlying_grid, resolution))) 
 
-    load_per_x_slab = arch_array(childarch, zeros(Int, N[1]))
-    # load_per_y_slab = arch_array(childarch, zeros(Int, N[2]))
+    load_per_x_slab = arch_array(child_arch, zeros(Int, N[1]))
+    # load_per_y_slab = arch_array(child_arch, zeros(Int, N[2]))
 
     loop! = assess_x_load(device(child_arch), 512, N[1])
     loop!(load_per_x_slab, ibg)
