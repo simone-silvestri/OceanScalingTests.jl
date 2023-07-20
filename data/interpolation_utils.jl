@@ -18,8 +18,6 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     nb = (nw, ne, nn, ns)
     pos = Int.(nb .!= 0)
 
-    @synchronize 
-
     if (field[i, j, k] == 0) & (sum(pos) > 0)
         field[i, j, k] = dot(pos, nb) / sum(pos) 
     end
@@ -47,8 +45,6 @@ extend_vertically!(field) =
     new_field[i, j, k] = field[i, j, k]
     nn = (field[i, j, k], field[i + 1, j, k], field[i - 1, j, k], field[i, j + 1, k], field[i, j - 1, k])
     non_null  = Int.(nn .!= 0)
-
-    @synchronize
 
     if sum(non_null) > 0
         new_field[i, j, k] = sum(nn) / sum(non_null)
