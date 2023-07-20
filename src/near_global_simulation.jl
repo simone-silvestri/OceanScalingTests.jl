@@ -32,7 +32,7 @@ previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme 
 
 experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
 
-best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
+best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
                                                             vertical_scheme = WENO(grid))
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
