@@ -186,7 +186,7 @@ end
     n  = mod(time_in_days, 15) ÷ 3 + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    Tr = p.T_restoring[i, j, n] * (n₂ - n) + p.T_restoring[i, j, n₂] * (n - n₁)
+    Tr = p.Tr[i, j, n] * (n₂ - n) + p.Tr[i, j, n₂] * (n - n₁)
     restoring = p.λ * (Tr - fields.T[i, j, grid.Nz])
 
     return flux + restoring
@@ -204,7 +204,7 @@ end
     n  = mod(time_in_days, 15) ÷ 3 + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    Sr = p.S_restoring[i, j, n] * (n₂ - n) + p.S_restoring[i, j, n₂] * (n - n₁)
+    Sr = p.Sr[i, j, n] * (n₂ - n) + p.Sr[i, j, n₂] * (n - n₁)
     restoring = p.λ * (Sr - fields.S[i, j, grid.Nz])
 
     return flux + restoring
