@@ -137,7 +137,7 @@ function generate_fluxes(resolution; arch = GPU())
     tmpy = zeros(Nx÷2, Ny+1, 6)
 
     for (idx, iterations) in enumerate(it_collection)
-	if !isfile("fluxes_$(idx).jld2")
+	    if !isfile("fluxes_$(idx).jld2")
             τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Face, Center, Center))
             τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Center, Face, Center))
             Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations, Nx, Ny; arch, max_val = 1e8)
