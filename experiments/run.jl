@@ -47,11 +47,6 @@ if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
-if final_year >= 1995 
-    rank == 0 && @info "simulation runs till" final_year final_month
-    stop_time = OceanScalingTests.realistic_ocean_stop_time(final_year, final_month)
-end
-
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, with_restoring, loadbalance, precision)
 
