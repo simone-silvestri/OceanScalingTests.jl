@@ -6,8 +6,8 @@ using JLD2
 include("interpolation_utils.jl")
 
 iters = Int[]
-final_year  = parse(Int, get(ENV, "FINALYEAR", "2000"))
-final_month = parse(Int, get(ENV, "FINALMONTH", "12")) 
+final_year  = parse(Int, get(ENV, "FINALYEAR", "1996"))
+final_month = parse(Int, get(ENV, "FINALMONTH", "1")) 
 for year in 1995:final_year-1
     for month in 1:12
         for day in OceanScalingTests.monthly_days(year)[month]
@@ -79,7 +79,7 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
 
         for (idx, iter) in enumerate(iterations)
 
-            file = "$(name).1440x720.$(iter).nc"
+            file   = full_field ? "$(name).1440x720x50.$(iter).nc" : "$(name).1440x720.$(iter).nc"
             suffix = full_field ? "" : "_daily"
             # Downloading files
             url = "https://ecco.jpl.nasa.gov/drive/files/ECCO2/cube92_latlon_quart_90S90N/$(name)$(suffix).nc/$(file)"
@@ -173,7 +173,7 @@ function generate_restoring(resolution; arch = GPU())
     tmp  = zeros(Nx÷2, Ny, 6)
 
     for (idx, iterations) in enumerate(it_collection)
-	    if !isfile("fluxes_$(idx).jld2")
+	    if !isfile("restoring_$(idx).jld2")
             Tr = read_and_interpolate_quarter_flux("THETA", iterations, Nx, Ny; full_field = true, arch, max_val = 1e8)
             Sr = read_and_interpolate_quarter_flux("SALT",  iterations, Nx, Ny; full_field = true, arch, max_val = 1e8)
 
