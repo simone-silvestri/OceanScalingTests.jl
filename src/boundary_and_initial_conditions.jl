@@ -187,7 +187,9 @@ end
 @inline function update_fluxes!(sim)
 
     # Repeat year does mod(time, 365) otherwise take out the mod
-    filenum = mod(Int(sim.model.clock.time ÷ 5days), 365) + 1
+    repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
+    filenum = repeat_year ? mod(Int(sim.model.clock.time ÷ 5days), 365) + 1 :
+                                Int(sim.model.clock.time ÷ 5days) + 1 
 
     model = sim.model
     grid  = model.grid
@@ -211,7 +213,9 @@ end
 @inline function update_restoring!(sim)
 
     # Repeat year does mod(time, 365) otherwise take out the mod
-    filenum = mod(Int(sim.model.clock.time ÷ 15days), 365) + 1
+    repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
+    filenum = repeat_year ? mod(Int(sim.model.clock.time ÷ 15days), 365) + 1 :
+                                Int(sim.model.clock.time ÷ 15days) + 1 
 
     model = sim.model
     grid  = model.grid

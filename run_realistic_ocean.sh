@@ -29,6 +29,9 @@ export NNODES=1
 export FINALYEAR=1996
 export FINALMONTH=1
 
+# If REPEATYEAR == true then we repeat year 1995
+export REPEATYEAR=true
+
 # Restart from interpolated fields ? "" : "numer_of_iteration_to_restart_from"
 export RESTART=""
 
