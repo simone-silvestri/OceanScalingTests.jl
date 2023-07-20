@@ -19,8 +19,6 @@ function barotropic_substeps(Δt, grid;
 end
 
 substeps(free_surface) = length(free_surface.settings.substepping.averaging_weights)
-experiment_depth(exp)  = exp == :RealisticOcean ? 5244.5 : 3kilometers
-
 # At the moment the simulation does not run for TEOS10 with the DoubleDrake initialization (srt(negative number))
 equation_of_state(::Val{E},            precision) where E = TEOS10EquationOfState(precision)
 equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfState(precision)
@@ -32,7 +30,9 @@ previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme 
                                                              ke_gradient_scheme = EnergyConservingScheme(precision),
                                                                       upwinding = CrossAndSelfUpwinding()) 
 
-best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
+experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
+
+best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
                                                             vertical_scheme = WENO(grid))
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
@@ -72,7 +72,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
     tracer_advection   = WENO(grid)
-    momentum_advection = previous_momentum_advection(grid, precision)
+    momentum_advection = best_momentum_advection(grid, precision)
 
     free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(Δt, grid))
 
@@ -117,8 +117,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         profiled_time_steps!(model, Δt, resolution)
         return nothing
     end
-    
-    # initialize_model!(model, Val(experiment); restart)
+   
+    initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
 
     #####

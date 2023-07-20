@@ -124,26 +124,29 @@ function generate_fluxes(resolution; arch = GPU())
     tmpy = zeros(Nx÷2, Ny+1, 6)
 
     for (idx, iterations) in enumerate(it_collection)
+	if !isfile("fluxes_$(idx).jld2")
+            τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Face, Center, Center))
+            τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Center, Face, Center))
+            Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations, Nx, Ny; arch, max_val = 1e8)
+            Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations, Nx, Ny; arch, max_val = 1e8)
 
-        τx = read_and_interpolate_quarter_flux("oceTAUX",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Face, Center, Center))
-        τy = read_and_interpolate_quarter_flux("oceTAUY",  iterations, Nx, Ny; arch, max_val = 1e8, location = (Center, Face, Center))
-        Fs = read_and_interpolate_quarter_flux("oceFWflx", iterations, Nx, Ny; arch, max_val = 1e8)
-        Qs = read_and_interpolate_quarter_flux("oceQnet",  iterations, Nx, Ny; arch, max_val = 1e8)
+            @info "Correcting fluxes"
+            Qs .*= (1 / 1000 / 3991)
+            Fs .*= (1 / 1000 * 35)
 
-        @info "Correcting fluxes"
-        Qs .*= (1 / 1000 / 3991)
-        Fs .*= (1 / 1000 * 35)
+            Qs .= -Qs
+            τx .= -τx ./ 1000
+            τy .= -τy ./ 1000
 
-        Qs .= -Qs
-        τx .= -τx ./ 1000
-        τy .= -τy ./ 1000
+            transpose_flux!(τx, tmp)
+            transpose_flux!(Qs, tmp)
+            transpose_flux!(Fs, tmp)
+            transpose_flux!(τy, tmpy)
 
-        transpose_flux!(τx, tmp)
-        transpose_flux!(Qs, tmp)
-        transpose_flux!(Fs, tmp)
-        transpose_flux!(τy, tmpy)
-
-        @info "saving down fluxes $idx"
-        jldsave("fluxes_$(idx).jld2", τx = τx, τy = τy, Qs = Qs, Fs = Fs)
+            @info "saving down fluxes $idx"
+            jldsave("fluxes_$(idx).jld2", τx = τx, τy = τy, Qs = Qs, Fs = Fs)
+        else
+            @info "fluxes_$(idx).jld2 already exists!!"
+        end
     end
 end
