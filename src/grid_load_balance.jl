@@ -28,7 +28,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                 z = z_faces)
 
     return experiment == :RealisticOcean ? 
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) :
+           ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(realistic_bathymetry(underlying_grid, resolution)), true) :
            experiment == :DoubleDrake ?
            ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
            underlying_grid
@@ -46,7 +46,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                         halo = (7, 7, 7),
                         z = z_faces)
 
-    ibg = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution))) 
+    ibg = ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(realistic_bathymetry(underlying_grid, resolution))) 
 
     load_per_x_slab = arch_array(childarch, zeros(Int, N[1]))
     # load_per_y_slab = arch_array(childarch, zeros(Int, N[2]))
@@ -77,7 +77,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                                   halo = (7, 7, 7),
                                                   z = z_faces)
 
-    return ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) 
+    return ImmersedBoundaryGrid(underlying_grid, PartialCellBottom(realistic_bathymetry(underlying_grid, resolution)), true) 
 end
 
 @kernel function assess_x_load(load_per_slab, ibg)
