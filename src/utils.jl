@@ -30,8 +30,25 @@ function realistic_ocean_stop_time(final_year, final_month = 12)
     return simulation_days * days 
 end
 
+function check_ranges(folder, ranks, iteration; H = 7)
+    Nx = Vector(undef, ranks)
+    iranges = Vector(undef, ranks)
+    for rank in 0:ranks - 1
+        var = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["u/data"][H+1:end-H, H+1:end-H, H+1:end-H]
+        Nx[rank+1]  = size(var, 1)
+        Ny[rank+1]  = size(var, 2)
+    end
+    iranges[1] = UnitRange(1, Nx[1])
+    for rank in 2:ranks
+        iranges[rank] = UnitRange(iranges[rank-1][2]+1,iranges[rank-1][2]+Nx[rank])
+    end
+
+    return iranges
+end
+
+
 function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5, 
-                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], Nsteps = 33)
+                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], Nsteps = 33, H = 7)
 
     Nx, Ny, Nz = full_size
 
@@ -51,20 +68,22 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
     fields_data[:underlying_grid] = full_grid
     fields_data[:bathymetry]      = bathymetry
 
+    iranges = check_ranges(folder, ranks, iteration; H)
+
     @info "starting the compression"
     for var in (:u, :w, :v, :T, :S)
         GC.gc()
 
         @info "compressing variable $var"
         sizefield = var == :v ? (Nx, Ny+1, Nz) :
-        var == :w ? (Nx, Ny, Nz+1) : (Nx, Ny, Nz)
+                    var == :w ? (Nx, Ny, Nz+1) : (Nx, Ny, Nz)
 
         compressed_data = zeros(Float32, sizefield...)
 
         for rank in 0:ranks-1
             @info "reading rank $rank"
-            irange    = UnitRange(1 + rank * nx, (rank + 1) * nx)
-            compressed_data[irange, :, :] .= jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")[string(var) * "/data"][6:end-5, 6:end-5, 6:end-5]
+            irange = iranges[rank+1]
+            compressed_data[irange, :, :] .= jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")[string(var) * "/data"][H+1:end-H, H+1:end-H, H+1:end-H]
         end
 
         fields_data[var] = compressed_data
