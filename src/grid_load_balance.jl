@@ -66,7 +66,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
     redistribute_size_to_fulfill_memory_limitation!(local_Nx, 1150)
 
     zonal_rank = arch.local_index[1]
-    N = (local_N[zonal_rank], N[2] ÷ arch.ranks[2], N[3])
+    N = (local_Nx[zonal_rank], N[2] ÷ arch.ranks[2], N[3])
 
     @info "slab decomposition with " zonal_rank N
 
