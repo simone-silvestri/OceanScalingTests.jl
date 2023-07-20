@@ -27,13 +27,15 @@ export NNODES=2
 # For :RealisticOcean the simulation always starts from 01/01/1995, when does it end?
 export FINALYEAR=1995
 export FINALMONTH=1
+export REPEATYEAR=1995
 
 # Restart from interpolated fields ? "" : "numer_of_iteration_to_restart_from"
 export RESTART=""
 
 # Shall we regenerate fluxes? Shall we regenerate initial conditions?
-export REGENERATEFLUXES=1
-export REGENERATEINITIALCONDITIONS=1
+export REGENERATEFLUXES=0
+export REGENERATEINITIALCONDITIONS=0
+export REGENERATERESTORING=1
 
 # Server specific enviromental variables and modules
 source satori/setup_satori.sh
@@ -92,6 +94,22 @@ else
 fi
 
 rm write_fluxes.jl
+
+# check we want to regenerate fluxes otherwise proceed
+cat > write_restoring.jl << EoF_s
+include("generate_fluxes.jl")
+res = parse(Int, get(ENV, "RESOLUTION", "3"))
+generate_restoring(res; arch=CPU())
+EoF_s
+
+if test $REGENERATERESTORING == 0 ; then
+    echo "we are not regenerating the restoring data"
+else
+    echo "regenerating restoring data"
+    $JULIA --project --check-bounds=no write_restoring.jl
+fi
+
+rm write_restoring.jl
 
 # check we want to regrid initial conditions otherwise proceed
 cat > generate_initial_conditions.jl << EoF_s
