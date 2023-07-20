@@ -182,7 +182,7 @@ function generate_restoring(resolution; arch = GPU())
             transpose_flux!(Sr, tmp)
 
             @info "saving down restoring $idx"
-            jldsave("restoring_$(idx).jld2", τx = τx, τy = τy, Qs = Qs, Fs = Fs)
+            jldsave("restoring_$(idx).jld2", Tr = Tr, Sr = Sr)
         else
             @info "restoring_$(idx).jld2 already exists!!"
         end
