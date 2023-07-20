@@ -7,7 +7,7 @@
 # ====================================================== #
 
 # Grid size
-export RESOLUTION=12
+export RESOLUTION=6
 export NZ=100
 
 # Experiment details
@@ -23,11 +23,11 @@ export LOADBALANCE=1
 export PROFILE=0
 
 # How many nodes are we running on?
-export NNODES=2
+export NNODES=1
 
 # For :RealisticOcean the simulation always starts from 01/01/1995, when does it end?
-export FINALYEAR=1995
-export FINALMONTH=12
+export FINALYEAR=1996
+export FINALMONTH=1
 
 # Restart from interpolated fields ? "" : "numer_of_iteration_to_restart_from"
 export RESTART=""
@@ -35,7 +35,7 @@ export RESTART=""
 # Shall we regenerate fluxes? Shall we regenerate initial conditions?
 export REGENERATEFLUXES=0
 export REGENERATEINITIALCONDITIONS=0
-export REGENERATERESTORING=1
+export REGENERATERESTORING=0
 
 # Server specific enviromental variables and modules
 source satori/setup_satori.sh
