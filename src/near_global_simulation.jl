@@ -45,6 +45,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  Nz = 100,
                                  profile = false,
                                  with_fluxes = true,
+                                 with_restoring = true,
                                  loadbalance = true,
                                  precision = Float64,
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
@@ -87,7 +88,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Boundary conditions
     #####
 
-    boundary_conditions = set_boundary_conditions(Val(experiment), grid; with_fluxes)
+    boundary_conditions = set_boundary_conditions(Val(experiment), grid; with_fluxes, with_restoring)
 
     #####
     ##### Model setup

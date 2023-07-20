@@ -27,14 +27,15 @@ Rx = Nranks
 ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
-resolution  = parse(Int,  get(ENV, "RESOLUTION", "3"))
-experiment  = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
-with_fluxes = parse(Bool, get(ENV, "WITHFLUXES", "0"))
-profile     = parse(Bool, get(ENV, "PROFILE", "1"))
-restart     =             get(ENV, "RESTART", "")
-Nz          = parse(Int,  get(ENV, "NZ", "100"))
-loadbalance = parse(Bool, get(ENV, "LOADBALANCE", "0"))
-precision   = eval(Symbol(get(ENV, "PRECISION", "Float64")))
+resolution     = parse(Int,  get(ENV, "RESOLUTION", "3"))
+experiment     = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
+with_fluxes    = parse(Bool, get(ENV, "WITHFLUXES", "0"))
+with_restoring = parse(Bool, get(ENV, "WITHRESTORING", "0"))
+profile        = parse(Bool, get(ENV, "PROFILE", "1"))
+restart        =             get(ENV, "RESTART", "")
+Nz             = parse(Int,  get(ENV, "NZ", "100"))
+loadbalance    = parse(Bool, get(ENV, "LOADBALANCE", "0"))
+precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 
 final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
@@ -43,7 +44,7 @@ final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
 stop_time = 3650days
 
 if rank == 0
-    @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes restart 
+    @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
 if final_year >= 1995 
@@ -52,7 +53,7 @@ if final_year >= 1995
 end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
-						       profile, with_fluxes, loadbalance, precision)
+						       profile, with_fluxes, with_restoring, loadbalance, precision)
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)

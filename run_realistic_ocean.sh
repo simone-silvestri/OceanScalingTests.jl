@@ -13,6 +13,7 @@ export NZ=100
 # Experiment details
 export EXPERIMENT="RealisticOcean"
 export WITHFLUXES=1
+export WITHRESTORING=1
 export PRECISION="Float64"
 
 # Might increase performance when using a lot of cores (i.e. improves scalability)
@@ -104,6 +105,9 @@ EoF_s
 if test $REGENERATERESTORING == 0 ; then
     echo "we are not regenerating the restoring data"
 else
+    if test $EXPERIMENT != "RealisticOcean" || test $WITHRESTORING == 0 ; then
+        echo "WARNING!! we are regenerating the restoring data but it is not needed for this simulation"
+    fi
     echo "regenerating restoring data"
     $JULIA --project --check-bounds=no write_restoring.jl
 fi
