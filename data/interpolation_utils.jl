@@ -37,11 +37,10 @@ end
 
 function propagate_field!(field, tmp_field) 
     passes  = Ref(0)
-    counter = arch_array(architecture(field.grid), zero(size(field)...))
 
     substitute_zeros_with_nans!(field)
 
-    while !isnan(sum(counter))
+    while !isnan(sum(field.data))
         launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, tmp_field, field.grid.Nx, field.grid.Ny)
         set!(field, tmp_field)
         fill_halo_regions!(field)
