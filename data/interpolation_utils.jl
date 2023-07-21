@@ -22,9 +22,9 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         ne = ifelse(i == Nx, field[1, j, k],    field[i + 1, j, k])
         nn = ifelse(j == Ny, field[Ny-1, 2, k], field[i, j + 1, k])
         nb = (nw, ne, nn, ns)
-        pos = Int.(nb .!= 0)
+        pos = (isnan(n) ? false : true for n in nb)
 
-        if (field[i, j, k] == 0) & (sum(pos) > 0)
+        if (isnan(field[i, j, k])) & (sum(Int.(pos)) > 0)
             tmp_field[i, j, k] = dot(pos, nb) / sum(pos) 
         end
     end
@@ -113,6 +113,18 @@ cap_minimum!(field, ::Nothing) = nothing
 cap_minimum!(field, min_val) =
     launch!(architecture(field.grid), field.grid, :xyz, _cap_minimum!, field, min_val)
     
+
+@kernel function _substitute_zeros_with_nans!(field)
+    i, j, k = @index(Global, NTuple)
+
+    if field[i, j, k] == 0
+        field[i, j, k] = NaN
+    end
+end
+    
+substitute_zeros_with_nans!(field) =
+    launch!(architecture(field.grid), field.grid, :xyz, _substitute_zeros_with_nans!, field)
+
 @kernel function _fix_max_val!(field, max_val)
     i, j, k = @index(Global, NTuple)
 
