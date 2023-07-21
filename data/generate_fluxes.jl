@@ -90,19 +90,12 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
 
             @info "interpolating file $file"
 
-            if full_field
-                set_field!(cs_field, ncread(file, name)[:, :, 1])
-            else
-                set_field!(cs_field, ncread(file, name)[:, :, 1])
-            end
+            set_field!(cs_field, ncread(file, name)[:, :, 1])
             fix_max_val!(cs_field, max_val)
-
             fill_halo_regions!(cs_field)
-            
+
             propagate_field!(cs_field, cs_tmp)
-
             horizontal_interpolate!(my_field, cs_field)
-
             fill_halo_regions!(my_field)
             
             for step in 1:5
