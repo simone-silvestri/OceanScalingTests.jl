@@ -43,8 +43,8 @@ extend_vertically!(field) =
 @kernel function _resort_vertically!(T, S, b, Nz, counter)
     i, j = @index(Global, NTuple)
 
-    counter[] = 0
     @inbounds begin
+        counter[i, j] = 0
         @unroll for k in 2:Nz
             if b[i, j, k] < b[i, j, k-1]
                 temp = T[i, j, k]
@@ -53,7 +53,7 @@ extend_vertically!(field) =
                 temp = S[i, j, k]
                 S[i, j, k]   = S[i, j, k-1]
                 S[i, j, k-1] = temp
-                counter[] += 1
+                counter[i, j] += 1
             end
         end
     end
@@ -61,11 +61,12 @@ end
 
 function resort_vertically!(T, S, buoyancy)
     grid = T.grid
+    arch = architecture(grid)
 
-    passes = Ref(0)
-    counter = Ref(1)
+    passes  = Ref(0)
+    counter = arch_array(arch, ones(size(grid, 1), size(grid, 2)))
 
-    while counter[] != 0
+    while sum(counter) != 0
         b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, grid, buoyancy, (; T, S))
         b = compute!(Field(b))
         launch!(architecture(grid), grid, :xy, _resort_vertically!, T, S, b, size(grid, 3), counter)
