@@ -168,37 +168,21 @@ end
     return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
 end
 
-# Restorings are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 15 (in steps of 3)
-@inline function flux_and_restoring_T(i, j, grid, clock, fields, p)
+@inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    flux = p.Qs[i, j, n₁] * (n₂ - n) + p.Qs[i, j, n₂] * (n - n₁)
+    flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
 
     n  = mod(time_in_days, 15) ÷ 3 + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    Tr = p.Tr[i, j, n₁] * (n₂ - n) + p.Tr[i, j, n₂] * (n - n₁)
-    restoring = p.λ * (Tr - fields.T[i, j, grid.Nz])
-
+    Ri = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
+    restoring = λ * (Ri - field[i, j, grid.Nz])
     return flux + restoring
 end
 
 # Restorings are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 15 (in steps of 3)
-@inline function flux_and_restoring_S(i, j, grid, clock, fields, p)
-    time_in_days = clock.time / 1days
-
-    n  = mod(time_in_days, 5) + 1
-    n₁ = Int(floor(n))
-    n₂ = Int(n₁ + 1)    
-    flux = p.Fs[i, j, n₁] * (n₂ - n) + p.Fs[i, j, n₂] * (n - n₁)
-
-    n  = mod(time_in_days, 15) ÷ 3 + 1
-    n₁ = Int(floor(n))
-    n₂ = Int(n₁ + 1)    
-    Sr = p.Sr[i, j, n₁] * (n₂ - n) + p.Sr[i, j, n₂] * (n - n₁)
-    restoring = p.λ * (Sr - fields.S[i, j, grid.Nz])
-
-    return flux + restoring
-end
+@inline flux_and_restoring_T(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.T, p.Qs, p.Tr, p.λ)
+@inline flux_and_restoring_S(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.S, p.Fs, p.Sr, p.λ)
