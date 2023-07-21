@@ -81,10 +81,12 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         horizontal_interpolate!(Tᶻ, T)
         horizontal_interpolate!(Sᶻ, S)
 
+        tmp = CenterField(gridᶻ)
+
         for step in 1:500
             @info "propagating step $step"
-            propagate_field!(Tᶻ)
-            propagate_field!(Sᶻ)
+            propagate_field!(Tᶻ, tmp)
+            propagate_field!(Sᶻ, tmp)
         end
 
         @info "resorting vertically"

@@ -56,6 +56,7 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
 
     grid_cs510 = RectilinearGrid(arch, size = (1440, 720, 1), y = (-90, 90), x = (-180, 180), z = (0, 1), topology = (Periodic, Bounded, Bounded)) 
     cs_field = Field{location...}(grid_cs510)
+    cs_tmp   = Field{location...}(grid_cs510)
 
     interp = if location[2] == Face
         zeros(Nx, Ny+1, 6)
@@ -99,7 +100,7 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
             fill_halo_regions!(cs_field)
 
             for step in 1:50
-                propagate_field!(cs_field)
+                propagate_field!(cs_field, cs_tmp)
             end
 
             horizontal_interpolate!(my_field, cs_field)

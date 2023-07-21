@@ -6,26 +6,36 @@ using Oceananigans.Architectures
 using Oceananigans.Architectures: architecture
 using Oceananigans.Distributed
 using Oceananigans.Grids: node
+using Oceananigans.BoundaryConditions
 using Oceananigans.BuoyancyModels: buoyancy_perturbationᶜᶜᶜ
 using KernelAbstractions: @kernel, @index, @synchronize
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
-@kernel function _propagate_field!(field, Nx, Ny)
+@kernel function _propagate_field!(field, tmp_field, Nx, Ny)
     i, j, k = @index(Global, NTuple)
-    nw = ifelse(i == 1 , field[Nx, j, k], field[i - 1, j, k])
-    ns = ifelse(j == 1 , 0.0,             field[i, j - 1, k])
-    ne = ifelse(i == Nx, field[1, j, k],  field[i + 1, j, k])
-    nn = ifelse(j == Ny, 0.0,             field[i, j + 1, k])
-    nb = (nw, ne, nn, ns)
-    pos = Int.(nb .!= 0)
 
-    if (field[i, j, k] == 0) & (sum(pos) > 0)
-        field[i, j, k] = dot(pos, nb) / sum(pos) 
+    @inbounds begin
+        new_field[i, j, k] = field[i, j, k]
+
+        nw = ifelse(i == 1 , field[Nx, j, k], field[i - 1, j, k])
+        ns = ifelse(j == 1 , 0.0,             field[i, j - 1, k])
+        ne = ifelse(i == Nx, field[1, j, k],  field[i + 1, j, k])
+        nn = ifelse(j == Ny, 0.0,             field[i, j + 1, k])
+        nb = (nw, ne, nn, ns)
+        pos = Int.(nb .!= 0)
+
+        if (field[i, j, k] == 0) & (sum(pos) > 0)
+            tmp_field[i, j, k] = dot(pos, nb) / sum(pos) 
+        end
     end
 end
 
-propagate_field!(field) =
-    launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, field.grid.Nx, field.grid.Ny)
+function propagate_field!(field, tmp_field) 
+    launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, tmp_field, field.grid.Nx, field.grid.Ny)
+    set!(field, tmp_field)
+    fill_halo_regions!(field)
+    return nothing
+end
 
 @kernel function _extend_vertically!(field, Nz)
     i, j = @index(Global, NTuple)
