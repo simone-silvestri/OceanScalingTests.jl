@@ -29,9 +29,17 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         pn = ifelse(isnan(nn), false, true) 
         pb = (pw, ps, pe, pn)
 
-        if isnan(field[i, j, k]) && sum(Int.(pb)) > 0
-            tmp_field[i, j, k] = dot(pb, nb) / sum(pb) 
-        end
+        tmp_field[i, j, k] = dot(pb, nb) / sum(pb) 
+    end
+end
+
+@kernel function _substitute_nans!(field, tmp_field)
+    i, j, k = @index(Global, NTuple)
+    if isnan(field[i, j, k]) 
+        @inbounds field[i, j, k] = tmp_field[i, j, k]
+    end
+    if abs(field[i, j, k]) > 1e10
+        @inbounds field[i, j, k] = tmp_field[i, j, k]
     end
 end
 
@@ -42,8 +50,7 @@ function propagate_field!(field, tmp_field)
 
     while isnan(sum(parent(field)))
         launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, tmp_field, field.grid.Nx, field.grid.Ny)
-        set!(field, tmp_field)
-        fill_halo_regions!(field)
+        launch!(architecture(field.grid), field.grid, :xyz, _substitute_nans!, field, tmp_field)
         passes[] += 1
         @info "propagate pass $(passes[]) with sum $(sum(parent(field)))"
     end
