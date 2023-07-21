@@ -15,7 +15,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     i, j, k = @index(Global, NTuple)
 
     @inbounds begin
-        new_field[i, j, k] = field[i, j, k]
+        tmp_field[i, j, k] = field[i, j, k]
 
         nw = ifelse(i == 1 , field[Nx, j, k], field[i - 1, j, k])
         ns = ifelse(j == 1 , 0.0,             field[i, j - 1, k])
