@@ -26,11 +26,10 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         ps = ifelse(isnan(nw), false, true) 
         pe = ifelse(isnan(nw), false, true) 
         pn = ifelse(isnan(nw), false, true) 
-        
-        pos = (pw, ps, pe, pn)
+        pb = (pw, ps, pe, pn)
 
-        if (isnan(field[i, j, k])) & (sum(Int.(pos)) > 0)
-            tmp_field[i, j, k] = dot(pos, nb) / sum(pos) 
+        if isnan(field[i, j, k]) && sum(Int.(pb)) > 0
+            tmp_field[i, j, k] = dot(pb, nb) / sum(pb) 
         end
     end
 end
