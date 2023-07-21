@@ -63,6 +63,19 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     extend_vertically!(T)
     extend_vertically!(S)
 
+    tmp = CenterField(grid)
+
+    for step in 1:500
+        @info "propagating step $step"
+        propagate_field!(T, tmp)
+        propagate_field!(S, tmp)
+    end
+
+    @info "resorting vertically"
+    eos = SeawaterPolynomials.TEOS10EquationOfState()
+    b   = SeawaterBuoyancy(; equation_of_state = eos) 
+    resort_vertically!(T, S, b)
+
     @info "finished extending"
 
     Depth = grid.Lz
@@ -78,22 +91,10 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
 
     if regrid_in_z
         fill_halo_regions!((T, S))
+        
         horizontal_interpolate!(Tᶻ, T)
         horizontal_interpolate!(Sᶻ, S)
 
-        tmp = CenterField(gridᶻ)
-
-        for step in 1:500
-            @info "propagating step $step"
-            propagate_field!(Tᶻ, tmp)
-            propagate_field!(Sᶻ, tmp)
-        end
-
-        @info "resorting vertically"
-        eos = SeawaterPolynomials.TEOS10EquationOfState()
-        b   = SeawaterBuoyancy(; equation_of_state = eos) 
-        resort_vertically!(Tᶻ, Sᶻ, b)
-        
         @info "saving z fields"
         jldsave("regridded_in_z.jld2", T = Array(interior(Tᶻ)), S = Array(interior(Sᶻ)))
     else
