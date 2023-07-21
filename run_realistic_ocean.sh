@@ -7,7 +7,7 @@
 # ====================================================== #
 
 # Grid size
-export RESOLUTION=6
+export RESOLUTION=12
 export NZ=100
 
 # Experiment details
@@ -23,7 +23,7 @@ export LOADBALANCE=1
 export PROFILE=0
 
 # How many nodes are we running on?
-export NNODES=1
+export NNODES=2
 
 # For :RealisticOcean the simulation always starts from 01/01/1995, when does it end?
 export FINALYEAR=1996
@@ -83,7 +83,7 @@ cd ../data
 cat > write_fluxes.jl << EoF_s
 include("generate_fluxes.jl")
 res = parse(Int, get(ENV, "RESOLUTION", "3"))
-generate_fluxes(res; arch = CPU())
+generate_fluxes(res; arch = GPU())
 EoF_s
 
 if test $REGENERATEFLUXES == 0 ; then
@@ -102,7 +102,7 @@ rm write_fluxes.jl
 cat > write_restoring.jl << EoF_s
 include("generate_fluxes.jl")
 res = parse(Int, get(ENV, "RESOLUTION", "3"))
-generate_restoring(res; arch=CPU())
+generate_restoring(res; arch=GPU())
 EoF_s
 
 if test $REGENERATERESTORING == 0 ; then
@@ -122,7 +122,7 @@ cat > generate_initial_conditions.jl << EoF_s
 include("regrid_initial_conditions.jl")
 res = parse(Int, get(ENV, "RESOLUTION", "3"))
 Nz  = parse(Int, get(ENV, "NZ", "100"))
-regrid_initial_conditions(res, Nz; arch = CPU())
+regrid_initial_conditions(res, Nz; arch = GPU())
 EoF_s
 
 if test $REGENERATEINITIALCONDITIONS == 0 ; then

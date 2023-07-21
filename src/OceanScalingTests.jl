@@ -12,6 +12,7 @@ using Oceananigans.Fields: interpolate, Field
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Coriolis: HydrostaticSphericalCoriolis
 using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
+using Oceananigans.ImmersedBoundaries: PartialCellBottom
 using Oceananigans.BoundaryConditions
 using CUDA: @allowscalar
 using Oceananigans.Operators

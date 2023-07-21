@@ -158,14 +158,6 @@ end
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-@inline function indices_in_days(time_in_days, tot_days)
-    n  = mod(time_in_days, tot_days) + 1
-    n₁ = Int(floor(n))
-    n₂ = Int(n₁ + 1)    
-
-    return n, n₁, n₂
-end
-
 # Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 5
 @inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
     time_in_days = clock.time / 1days
@@ -186,7 +178,7 @@ end
     n  = mod(time_in_days, 15) ÷ 3 + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    Tr = p.Tr[i, j, n] * (n₂ - n) + p.Tr[i, j, n₂] * (n - n₁)
+    Tr = p.Tr[i, j, n₁] * (n₂ - n) + p.Tr[i, j, n₂] * (n - n₁)
     restoring = p.λ * (Tr - fields.T[i, j, grid.Nz])
 
     return flux + restoring
@@ -204,7 +196,7 @@ end
     n  = mod(time_in_days, 15) ÷ 3 + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    Sr = p.Sr[i, j, n] * (n₂ - n) + p.Sr[i, j, n₂] * (n - n₁)
+    Sr = p.Sr[i, j, n₁] * (n₂ - n) + p.Sr[i, j, n₂] * (n - n₁)
     restoring = p.λ * (Sr - fields.S[i, j, grid.Nz])
 
     return flux + restoring
