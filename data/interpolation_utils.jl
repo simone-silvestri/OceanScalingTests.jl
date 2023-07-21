@@ -90,6 +90,19 @@ end
 horizontal_filter!(new_field, field) =
     launch!(architecture(field.grid), field.grid, :xyz, _horizontal_filter!, new_field, field)
 
+@kernel function _cap_minimum!(field, min_val)
+    i, j, k = @index(Global, NTuple)
+
+    if field[i, j, k] < min_val
+        field[i, j, k] = min_val
+    end
+end
+
+cap_minimum!(field, ::Nothing) = nothing
+
+cap_minimum!(field, min_val) =
+    launch!(architecture(field.grid), field.grid, :xyz, _cap_minimum!, field, min_val)
+    
 @kernel function _fix_max_val!(field, max_val)
     i, j, k = @index(Global, NTuple)
 
