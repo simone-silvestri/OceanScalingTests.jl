@@ -37,7 +37,7 @@ end
 
 function propagate_field!(field, tmp_field) 
     passes  = Ref(0)
-    counter = arch_array(architecture(field.grid), size(field)...)
+    counter = arch_array(architecture(field.grid), zero(size(field)...))
 
     substitute_zeros_with_nans!(field)
 
