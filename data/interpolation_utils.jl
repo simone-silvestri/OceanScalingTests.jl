@@ -22,7 +22,12 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         ne = ifelse(i == Nx, field[1, j, k],    field[i + 1, j, k])
         nn = ifelse(j == Ny, field[Ny-1, 2, k], field[i, j + 1, k])
         nb = (nw, ne, nn, ns)
-        pos = Tuple(isnan(n) ? false : true for n in nb)
+        pw = ifelse(isnan(nw), false, true) 
+        ps = ifelse(isnan(nw), false, true) 
+        pe = ifelse(isnan(nw), false, true) 
+        pn = ifelse(isnan(nw), false, true) 
+        
+        pos = (pw, ps, pe, pn)
 
         if (isnan(field[i, j, k])) & (sum(Int.(pos)) > 0)
             tmp_field[i, j, k] = dot(pos, nb) / sum(pos) 
