@@ -65,11 +65,9 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
 
     tmp = CenterField(grid)
 
-    for step in 1:500
-        @info "propagating step $step"
-        propagate_field!(T, tmp)
-        propagate_field!(S, tmp)
-    end
+    @info "propagating step $step"
+    propagate_field!(T, tmp)
+    propagate_field!(S, tmp)
 
     @info "resorting vertically"
     eos = SeawaterPolynomials.TEOS10EquationOfState()
