@@ -21,11 +21,12 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         ns = ifelse(j == 1 , field[i, 2, k],    field[i, j - 1, k])
         ne = ifelse(i == Nx, field[1, j, k],    field[i + 1, j, k])
         nn = ifelse(j == Ny, field[Ny-1, 2, k], field[i, j + 1, k])
+
         nb = (nw, ne, nn, ns)
         pw = ifelse(isnan(nw), false, true) 
-        ps = ifelse(isnan(nw), false, true) 
-        pe = ifelse(isnan(nw), false, true) 
-        pn = ifelse(isnan(nw), false, true) 
+        ps = ifelse(isnan(ns), false, true) 
+        pe = ifelse(isnan(ne), false, true) 
+        pn = ifelse(isnan(nn), false, true) 
         pb = (pw, ps, pe, pn)
 
         if isnan(field[i, j, k]) && sum(Int.(pb)) > 0
