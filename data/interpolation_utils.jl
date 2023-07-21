@@ -40,28 +40,37 @@ end
 extend_vertically!(field) =
     launch!(architecture(field.grid), field.grid, :xyz, _extend_vertically!, field, size(field.grid, 3))
 
-@kernel function _resort_vertically!(T, S, b, Nz)
+@kernel function _resort_vertically!(T, S, b, Nz, counter)
     i, j = @index(Global, NTuple)
 
-    @unroll for k in 2:Nz
-        if b[i, j, k] < b[i, j, k-1]
-        temp = T[i, j, k]
-        T[i, j, k]   = T[i, j, k-1]
-        T[i, j, k-1] = temp
-        temp = S[i, j, k]
-        S[i, j, k]   = S[i, j, k-1]
-        S[i, j, k-1] = temp
+    counter[] = 0
+    @inbounds begin
+        @unroll for k in 2:Nz
+            if b[i, j, k] < b[i, j, k-1]
+                temp = T[i, j, k]
+                T[i, j, k]   = T[i, j, k-1]
+                T[i, j, k-1] = temp
+                temp = S[i, j, k]
+                S[i, j, k]   = S[i, j, k-1]
+                S[i, j, k-1] = temp
+                counter[] += 1
+            end
+        end
     end
 end
 
-function resort_vertically!(T, S, buoyancy; passes = 20)
+function resort_vertically!(T, S, buoyancy)
     grid = T.grid
 
-    for pass in 1:passes
-        @info "resorting pass $pass"
+    passes = Ref(0)
+    counter = Ref(1)
+
+    while counter[] != 0
         b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, grid, buoyancy, (; T, S))
         b = compute!(Field(b))
-        launch!(architecture(grid), grid, :xy, _resort_vertically!, T, S, b, size(grid, 3))
+        launch!(architecture(grid), grid, :xy, _resort_vertically!, T, S, b, size(grid, 3), counter)
+        passes[] += 1
+        @info "resorting pass $(passes[])"
     end
 end
 
