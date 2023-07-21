@@ -10,8 +10,7 @@ DataDeps.register(dh)
 datadep"initial_conditions"
 
 # Initial conditions from ECCO version 2 (cube 92) at 01/01/1995
-path = "https://dl.dropboxusercontent.com/scl/fi/4ldg5rv3bvpyu5h8qdp7b/ecco-initial-conditions-19950101.jld2?rlkey=ckln61dgwewci4sro49cqog6z&dl=0"
-
+path = "https://dl.dropboxusercontent.com/scl/fi/vq0dz2xo5xnxc0rfzc3fc/ecco-initial-conditions-19950101.jld2?rlkey=kx9ttz728a8unzf40jq2tyzfh&dl=0"
 dh = DataDep("ecco_initial_conditions", "1/4th degree resolution initial conditions from ECCO", path)
 
 DataDeps.register(dh)
