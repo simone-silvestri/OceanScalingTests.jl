@@ -15,8 +15,6 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     i, j, k = @index(Global, NTuple)
 
     @inbounds begin
-        tmp_field[i, j, k] = NaN
-
         nw = ifelse(i == 1 , field[Nx, j, k],   field[i - 1, j, k])
         ns = ifelse(j == 1 , field[i, 2, k],    field[i, j - 1, k])
         ne = ifelse(i == Nx, field[1, j, k],    field[i + 1, j, k])
