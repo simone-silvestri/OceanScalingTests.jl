@@ -40,7 +40,7 @@ function propagate_field!(field, tmp_field)
 
     substitute_zeros_with_nans!(field)
 
-    while !isnan(sum(parent(field)))
+    while isnan(sum(parent(field)))
         launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, tmp_field, field.grid.Nx, field.grid.Ny)
         set!(field, tmp_field)
         fill_halo_regions!(field)
