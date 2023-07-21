@@ -38,9 +38,6 @@ end
     if isnan(field[i, j, k]) 
         @inbounds field[i, j, k] = tmp_field[i, j, k]
     end
-    if abs(field[i, j, k]) > 1e10
-        @inbounds field[i, j, k] = tmp_field[i, j, k]
-    end
 end
 
 function propagate_field!(field, tmp_field) 
