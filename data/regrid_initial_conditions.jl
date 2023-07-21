@@ -63,9 +63,6 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     extend_vertically!(T)
     extend_vertically!(S)
 
-    substitute_zeros_with_nans!(T)
-    substitute_zeros_with_nans!(S)
-
     tmp = CenterField(grid)
 
     for step in 1:500

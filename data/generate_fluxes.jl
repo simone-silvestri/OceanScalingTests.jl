@@ -98,10 +98,8 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
             fix_max_val!(cs_field, max_val)
 
             fill_halo_regions!(cs_field)
-
-            for step in 1:50
-                propagate_field!(cs_field, cs_tmp)
-            end
+            
+            propagate_field!(cs_field, cs_tmp)
 
             horizontal_interpolate!(my_field, cs_field)
 

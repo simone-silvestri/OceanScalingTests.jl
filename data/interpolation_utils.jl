@@ -21,8 +21,8 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         ns = ifelse(j == 1 , field[i, 2, k],    field[i, j - 1, k])
         ne = ifelse(i == Nx, field[1, j, k],    field[i + 1, j, k])
         nn = ifelse(j == Ny, field[Ny-1, 2, k], field[i, j + 1, k])
-
         nb = (nw, ne, nn, ns)
+
         pw = ifelse(isnan(nw), false, true) 
         ps = ifelse(isnan(ns), false, true) 
         pe = ifelse(isnan(ne), false, true) 
@@ -36,9 +36,19 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
 end
 
 function propagate_field!(field, tmp_field) 
-    launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, tmp_field, field.grid.Nx, field.grid.Ny)
-    set!(field, tmp_field)
-    fill_halo_regions!(field)
+    passes  = Ref(0)
+    counter = arch_array(arch, size(field)...)
+
+    substitute_zeros_with_nans!(field)
+
+    while !isnan(sum(counter))
+        launch!(architecture(field.grid), field.grid, :xyz, _propagate_field!, field, tmp_field, field.grid.Nx, field.grid.Ny)
+        set!(field, tmp_field)
+        fill_halo_regions!(field)
+        passes[] += 1
+        @info "propagate pass $(passes[])"
+    end
+
     return nothing
 end
 
