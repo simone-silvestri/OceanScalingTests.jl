@@ -45,7 +45,7 @@ function propagate_field!(field, tmp_field)
         set!(field, tmp_field)
         fill_halo_regions!(field)
         passes[] += 1
-        @info "propagate pass $(passes[])"
+        @info "propagate pass $(passes[]) with sum $(sum(parent(field)))"
     end
 
     return nothing
