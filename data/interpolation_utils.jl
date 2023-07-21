@@ -15,7 +15,7 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     i, j, k = @index(Global, NTuple)
 
     @inbounds begin
-        tmp_field[i, j, k] = field[i, j, k]
+        tmp_field[i, j, k] = NaN
 
         nw = ifelse(i == 1 , field[Nx, j, k],   field[i - 1, j, k])
         ns = ifelse(j == 1 , field[i, 2, k],    field[i, j - 1, k])
@@ -23,13 +23,15 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
         nn = ifelse(j == Ny, field[Ny-1, 2, k], field[i, j + 1, k])
         nb = (nw, ne, nn, ns)
 
-        pw = ifelse(isnan(nw), false, true) 
-        ps = ifelse(isnan(ns), false, true) 
-        pe = ifelse(isnan(ne), false, true) 
-        pn = ifelse(isnan(nn), false, true) 
-        pb = (pw, ps, pe, pn)
+        counter = 0
+        cumsum  = 0.0 
 
-        tmp_field[i, j, k] = dot(pb, nb) / sum(pb) 
+        @unroll for n in nb
+            counter += ifelse(isnan(n), 0, 1)
+            cumsum  += ifelse(isnan(n), 0, n)
+        end
+
+        tmp_field[i, j, k] = ifelse(cumsum == 0, NaN, cumsum / counter)
     end
 end
 
