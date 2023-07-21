@@ -6,6 +6,7 @@ using Oceananigans.Architectures
 using Oceananigans.Architectures: architecture
 using Oceananigans.Distributed
 using Oceananigans.Grids: node
+using Oceananigans.BuoyancyModels: buoyancy_perturbationᶜᶜᶜ
 using KernelAbstractions: @kernel, @index, @synchronize
 using KernelAbstractions.Extras.LoopInfo: @unroll
 
@@ -47,7 +48,7 @@ extend_vertically!(field) =
         perm = sortperm(bᵢⱼ)  
         Tᵢⱼ  = T[i, j, perm] 
         Sᵢⱼ  = T[i, j, perm] 
-        
+
         @unroll for k in 1:Nz
             T[i, j, k] = Tᵢⱼ[k]
             S[i, j, k] = Sᵢⱼ[k]
