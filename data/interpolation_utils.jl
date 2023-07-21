@@ -17,10 +17,10 @@ using KernelAbstractions.Extras.LoopInfo: @unroll
     @inbounds begin
         tmp_field[i, j, k] = field[i, j, k]
 
-        nw = ifelse(i == 1 , field[Nx, j, k], field[i - 1, j, k])
-        ns = ifelse(j == 1 , 0.0,             field[i, j - 1, k])
-        ne = ifelse(i == Nx, field[1, j, k],  field[i + 1, j, k])
-        nn = ifelse(j == Ny, 0.0,             field[i, j + 1, k])
+        nw = ifelse(i == 1 , field[Nx, j, k],   field[i - 1, j, k])
+        ns = ifelse(j == 1 , field[i, 2, k],    field[i, j - 1, k])
+        ne = ifelse(i == Nx, field[1, j, k],    field[i + 1, j, k])
+        nn = ifelse(j == Ny, field[Ny-1, 2, k], field[i, j + 1, k])
         nb = (nw, ne, nn, ns)
         pos = Int.(nb .!= 0)
 

@@ -93,8 +93,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         eos = SeawaterPolynomials.TEOS10EquationOfState()
         b   = SeawaterBuoyancy(; equation_of_state = eos) 
         resort_vertically!(Tᶻ, Sᶻ, b)
-        cap_minimum!(Sᶻ, 15)
-
+        
         @info "saving z fields"
         jldsave("regridded_in_z.jld2", T = Array(interior(Tᶻ)), S = Array(interior(Sᶻ)))
     else
