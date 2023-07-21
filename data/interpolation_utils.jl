@@ -57,9 +57,10 @@ extend_vertically!(field) =
 end
 
 function resort_vertically!(T, S, buoyancy)
-    b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, T.grid, buoyancy, (; T, S))
+    grid = T.grid
+    b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, grid, buoyancy, (; T, S))
     b = compute!(Field(b))
-    launch!(architecture(grid), field.grid, :xy, _resort_vertically!, T, S, b, size(field.grid, 3))
+    launch!(architecture(grid), grid, :xy, _resort_vertically!, T, S, b, size(grid, 3))
 end
 
 
