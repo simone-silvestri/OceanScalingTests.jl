@@ -43,26 +43,27 @@ extend_vertically!(field) =
 @kernel function _resort_vertically!(T, S, b, Nz)
     i, j = @index(Global, NTuple)
 
-    @inbounds begin
-        bᵢⱼ  = b[i, j, :]
-        perm = sortperm(bᵢⱼ)  
-        Tᵢⱼ  = T[i, j, perm] 
-        Sᵢⱼ  = T[i, j, perm] 
-
-        @unroll for k in 1:Nz
-            T[i, j, k] = Tᵢⱼ[k]
-            S[i, j, k] = Sᵢⱼ[k]
-        end
+    @unroll for k in 2:Nz
+        if b[i, j, k] < b[i, j, k-1]
+        temp = T[i, j, k]
+        T[i, j, k]   = T[i, j, k-1]
+        T[i, j, k-1] = temp
+        temp = S[i, j, k]
+        S[i, j, k]   = S[i, j, k-1]
+        S[i, j, k-1] = temp
     end
 end
 
-function resort_vertically!(T, S, buoyancy)
+function resort_vertically!(T, S, buoyancy; passes = 20)
     grid = T.grid
-    b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, grid, buoyancy, (; T, S))
-    b = compute!(Field(b))
-    launch!(architecture(grid), grid, :xy, _resort_vertically!, T, S, b, size(grid, 3))
-end
 
+    for pass in 1:passes
+        @info "resorting pass $pass"
+        b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, grid, buoyancy, (; T, S))
+        b = compute!(Field(b))
+        launch!(architecture(grid), grid, :xy, _resort_vertically!, T, S, b, size(grid, 3))
+    end
+end
 
 @kernel function _horizontal_filter!(new_field, field)
     i, j, k = @index(Global, NTuple)
