@@ -85,7 +85,13 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
             propagate_field!(Tᶻ)
             propagate_field!(Sᶻ)
         end
-	@info "saving z fields"
+
+        @info "resorting vertically"
+        eos = SeawaterPolynomials.TEOS10EquationOfState()
+        b   = SeawaterBuoyancy(; equation_of_state = eos) 
+        resort_vertically!(Tᶻ, Sᶻ, b)
+	    
+        @info "saving z fields"
         jldsave("regridded_in_z.jld2", T = Array(interior(Tᶻ)), S = Array(interior(Sᶻ)))
     else
         set!(Tᶻ, jldopen("regridded_in_z.jld2")["T"])

@@ -39,6 +39,29 @@ end
 extend_vertically!(field) =
     launch!(architecture(field.grid), field.grid, :xyz, _extend_vertically!, field, size(field.grid, 3))
 
+@kernel function _resort_vertically!(T, S, b, Nz)
+    i, j = @index(Global, NTuple)
+
+    @inbounds begin
+        bᵢⱼ  = b[i, j, :]
+        perm = sortperm(bᵢⱼ)  
+        Tᵢⱼ  = T[i, j, perm] 
+        Sᵢⱼ  = T[i, j, perm] 
+        
+        @unroll for k in 1:Nz
+            T[i, j, k] = Tᵢⱼ[k]
+            S[i, j, k] = Sᵢⱼ[k]
+        end
+    end
+end
+
+function resort_vertically!(T, S, buoyancy)
+    b = KernelFunctionOperation{Center, Center, Center}(buoyancy_perturbationᶜᶜᶜ, T.grid, buoyancy, (; T, S))
+    b = compute!(Field(b))
+    launch!(architecture(grid), field.grid, :xy, _resort_vertically!, T, S, b, size(field.grid, 3))
+end
+
+
 @kernel function _horizontal_filter!(new_field, field)
     i, j, k = @index(Global, NTuple)
 
