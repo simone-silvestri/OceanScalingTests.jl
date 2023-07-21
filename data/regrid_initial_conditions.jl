@@ -80,7 +80,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         regrid!(Tᶻ, T)
         regrid!(Sᶻ, S)
 
-        for step in 1:50
+        for step in 1:200
             @info "propagating step $step"
             propagate_field!(Tᶻ)
             propagate_field!(Sᶻ)
