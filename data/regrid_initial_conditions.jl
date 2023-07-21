@@ -78,8 +78,8 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
 
     if regrid_in_z
         fill_halo_regions!((T, S))
-        regrid!(Tᶻ, T)
-        regrid!(Sᶻ, S)
+        horizontal_interpolate!(Tᶻ, T)
+        horizontal_interpolate!(Sᶻ, S)
 
         for step in 1:500
             @info "propagating step $step"
@@ -91,7 +91,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         eos = SeawaterPolynomials.TEOS10EquationOfState()
         b   = SeawaterBuoyancy(; equation_of_state = eos) 
         resort_vertically!(Tᶻ, Sᶻ, b)
-	    
+
         @info "saving z fields"
         jldsave("regridded_in_z.jld2", T = Array(interior(Tᶻ)), S = Array(interior(Sᶻ)))
     else
