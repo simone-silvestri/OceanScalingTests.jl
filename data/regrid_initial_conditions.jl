@@ -10,6 +10,7 @@ using Statistics: dot
 using KernelAbstractions: @index, @kernel, @synchronize
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using OceanScalingTests: ECCO_z_faces
+using SeawaterPolynomials
 
 include("interpolation_utils.jl")
 include("download_datasets.jl")
