@@ -46,14 +46,12 @@ function check_ranges(folder, ranks, iteration; H = 7)
     return iranges
 end
 
-
 function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5, 
                                bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], Nsteps = 33, H = 7)
 
     Nx, Ny, Nz = full_size
 
     z_faces = OceanScalingTests.exponential_z_faces(Nz, Depth)
-    nx = Nx ÷ ranks
 
     @show size
 
@@ -93,7 +91,7 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
     for rank in 0:ranks-1
         @info "reading rank $rank"
 
-        irange = UnitRange(1 + rank * nx, (rank + 1) * nx)
+        irange = iranges[rank+1]
         data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"][Nsteps+1:end-Nsteps, 6:end-5, :]
         compressed_η[irange, :, :] .= Float32.(data)
     end
