@@ -86,16 +86,16 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
         fields_data[var] = compressed_data
     end
 
-    compressed_η = zeros(Float32, Nx, Ny, 1)
-    for rank in 0:ranks-1
-        @info "reading rank $rank"
+    # compressed_η = zeros(Float32, Nx, Ny, 1)
+    # for rank in 0:ranks-1
+    #     @info "reading rank $rank"
 
-        irange = iranges[rank+1]
-        data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"][Nsteps+1:end-Nsteps, 6:end-5, :]
-        compressed_η[irange, :, :] .= Float32.(data)
-    end
+    #     irange = iranges[rank+1]
+    #     data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"][Nsteps+1:end-Nsteps, 6:end-5, :]
+    #     compressed_η[irange, :, :] .= Float32.(data)
+    # end
 
-    fields_data[:η] = compressed_η
+    # fields_data[:η] = compressed_η
 
     jldopen("compressed_iteration_$(iteration).jld2","w") do f
         for (key, value) in fields_data
