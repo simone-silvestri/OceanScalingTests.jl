@@ -31,8 +31,8 @@ function realistic_ocean_stop_time(final_year, final_month = 12)
 end
 
 function check_ranges(folder, ranks, iteration; H = 7)
-    Nx = Vector(undef, ranks)
-    iranges = Vector(undef, ranks)
+    Nx = Vector(undef, ranks[1])
+    iranges = Vector(undef, ranks[1])
     for rank in 0:ranks - 1
         var = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["u/data"][H+1:end-H, H+1:end-H, H+1:end-H]
         Nx[rank+1]  = size(var, 1)
