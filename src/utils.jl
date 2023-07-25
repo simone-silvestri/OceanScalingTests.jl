@@ -39,7 +39,7 @@ function check_ranges(folder, ranks, iteration; H = 7)
     end
     iranges[1] = UnitRange(1, Nx[1])
     for rank in 2:ranks
-        iranges[rank] = UnitRange(iranges[rank-1][2]+1,iranges[rank-1][2]+Nx[rank])
+        iranges[rank] = UnitRange(iranges[rank-1][end]+1,iranges[rank-1][end]+Nx[rank])
     end
 
     return iranges
