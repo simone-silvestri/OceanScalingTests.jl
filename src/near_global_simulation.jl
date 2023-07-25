@@ -48,7 +48,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  with_restoring = true,
                                  loadbalance = true,
                                  precision = Float64,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision))
+                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision),
+                                 diffuse_initially = false)
 
     topo = (Periodic, Bounded, Bounded)
     arch = DistributedArch(child_arch; topology = topo, ranks)
@@ -82,6 +83,12 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     buoyancy = SeawaterBuoyancy(precision; equation_of_state=equation_of_state(Val(experiment), precision))
     closure  = (vertical_diffusivity, boundary_layer_parameterization)
     
+    if diffuse_initially
+        closure_init = (closure..., HorizontalScalarDiffusivity(κ = 100))
+    else
+        closure_init = closure
+    end
+
     coriolis = HydrostaticSphericalCoriolis(precision)
 
     #####
@@ -105,7 +112,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                           buoyancy,
                                           tracers,
                                           boundary_conditions,
-                                          closure)
+                                          closure = closure_init)
 
     @info "model allocated"
 
@@ -125,6 +132,26 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     #####
     ##### Simulation setup
     #####
+
+    stop_iteration = 1000    
+    simulation = Simulation(model; Δt, stop_iteration)
+    run!(simulation)
+
+    T, S = model.tracers
+
+    @info "reallocating model"
+    model = HydrostaticFreeSurfaceModel(; grid,
+                                          free_surface,
+                                          momentum_advection, tracer_advection,
+                                          coriolis,
+                                          buoyancy,
+                                          tracers,
+                                          boundary_conditions,
+                                          closure)
+
+    @info "model reallocated"
+
+    set!(model, T = T, S = S)
 
     simulation = Simulation(model; Δt, stop_time)
  
