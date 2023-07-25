@@ -106,7 +106,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     @info "allocating model"
     model = HydrostaticFreeSurfaceModel(; grid,
-                                          free_surface = nothing,
+                                          free_surface,
                                           momentum_advection = nothing, tracer_advection = nothing,
                                           coriolis = nothing,
                                           buoyancy,
