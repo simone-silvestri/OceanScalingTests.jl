@@ -32,7 +32,7 @@ end
 
 function regrid_initial_conditions(resolution, Nz; arch = GPU(), 
                                    regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces(),
-				   filepath = datadep"ecco_initial_conditions/ecco-initial-conditions-19950101.jld2") 
+				                   filepath = datadep"ecco_initial_conditions/ecco-initial-conditions-19950101.jld2") 
 
     file_init = jldopen(filepath)
 
@@ -69,11 +69,6 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     propagate_field!(T, tmp)
     propagate_field!(S, tmp)
 
-    @info "resorting vertically"
-    eos = SeawaterPolynomials.TEOS10EquationOfState()
-    b   = SeawaterBuoyancy(; equation_of_state = eos) 
-    resort_vertically!(T, S, b)
-
     @info "finished extending"
 
     Depth = grid.Lz
@@ -81,7 +76,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     @info "start regridding in Z!!"
     gridᶻ = LatitudeLongitudeGrid(arch; size = (nx, ny, Nz),
                                   longitude = (-180, 180),
-                                  latitude = (-75, 75),
+                                  latitude = latitude_init,
                                   z = exponential_z_faces(Nz, Depth))
 
     Tᶻ = CenterField(gridᶻ)
@@ -93,6 +88,11 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         horizontal_interpolate!(Tᶻ, T)
         horizontal_interpolate!(Sᶻ, S)
 
+        @info "resorting vertically"
+        eos = SeawaterPolynomials.TEOS10EquationOfState()
+        b   = SeawaterBuoyancy(; equation_of_state = eos) 
+        resort_vertically!(Tᶻ, Sᶻ, b)
+    
         @info "saving z fields"
         jldsave("regridded_in_z.jld2", T = Array(interior(Tᶻ)), S = Array(interior(Sᶻ)))
     else
@@ -105,7 +105,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     # The regridding is done per level to avoid OOM errors
     gridᶻ¹ = LatitudeLongitudeGrid(arch; size = (nx, ny, 1),
                                   longitude = (-180, 180),
-                                  latitude = (-75, 75),
+                                  latitude = latitude_init,
                                   z = (0, 1))
     
     Tᶻ¹ = CenterField(gridᶻ¹)
@@ -114,7 +114,7 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     @info "Continue by regridding in X!!"
     gridˣᶻ = LatitudeLongitudeGrid(arch; size = (Nx, ny, 1),
                                    longitude = (-180, 180),
-                                   latitude = (-75, 75),
+                                   latitude = latitude_init,
                                    z = (0, 1))
 
     Tˣᶻ = CenterField(gridˣᶻ)
