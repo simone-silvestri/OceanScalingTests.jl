@@ -157,7 +157,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
             simulation.callbacks[:update_fluxes] = Callback(update_fluxes!, TimeInterval(5days))
         end
         if with_restoring 
-            simulation.callbacks[:update_fluxes] = Callback(update_restoring!, TimeInterval(15days))
+            simulation.callbacks[:update_restoring] = Callback(update_restoring!, TimeInterval(15days))
         end
         ## simulation.callbacks[:garbage_collect] = Callback((sim) -> GC.gc(), IterationInterval(50))
     end
