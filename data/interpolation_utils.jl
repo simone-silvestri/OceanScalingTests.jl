@@ -131,7 +131,6 @@ cap_minimum!(field, ::Nothing) = nothing
 cap_minimum!(field, min_val) =
     launch!(architecture(field.grid), field.grid, :xyz, _cap_minimum!, field, min_val)
     
-
 @kernel function _substitute_zeros_with_nans!(field)
     i, j, k = @index(Global, NTuple)
 

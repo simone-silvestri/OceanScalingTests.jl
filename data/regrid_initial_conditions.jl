@@ -85,8 +85,8 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     if regrid_in_z
         fill_halo_regions!((T, S))
         
-        horizontal_interpolate!(Tᶻ, T)
-        horizontal_interpolate!(Sᶻ, S)
+        regrid!(Tᶻ, T)
+        regrid!(Sᶻ, S)
 
         @info "resorting vertically"
         eos = SeawaterPolynomials.TEOS10EquationOfState()
