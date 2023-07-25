@@ -49,7 +49,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  loadbalance = true,
                                  precision = Float64,
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision),
-                                 diffuse_initially = false)
+                                 diffuse_initially = true)
 
     topo = (Periodic, Bounded, Bounded)
     arch = DistributedArch(child_arch; topology = topo, ranks)
@@ -106,12 +106,11 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     @info "allocating model"
     model = HydrostaticFreeSurfaceModel(; grid,
-                                          free_surface,
-                                          momentum_advection, tracer_advection,
-                                          coriolis,
+                                          free_surface = nothing,
+                                          momentum_advection = nothing, tracer_advection = nothing,
+                                          coriolis = nothing,
                                           buoyancy,
                                           tracers,
-                                          boundary_conditions,
                                           closure = closure_init)
 
     @info "model allocated"
@@ -151,7 +150,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     @info "model reallocated"
 
-    set!(model, T = T, S = S)
+    set!(model, T = T, S = S)    
+    @info "model reinitialized"
 
     simulation = Simulation(model; Δt, stop_time)
  
