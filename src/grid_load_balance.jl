@@ -14,7 +14,7 @@ The load balancing is activated if `balance == true` and `experiment == :Realist
 In any case, the computational grid has an active cells map to elide computations in the immersed domain
 """
 function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution, 
-                            ::Val{balance}, ::Val{experiment}) where {balance, experiment}
+                            ::Val{balance}, ::Val{experiment}; Bottom = GridFittedBottom) where {balance, experiment}
 
     Nx, Ny, Nz = N
     Nx = Nx ÷ arch.ranks[1]
@@ -28,14 +28,14 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                 z = z_faces)
 
     return experiment == :RealisticOcean ? 
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) :
+    	   ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution)), true) :
            experiment == :DoubleDrake ?
            ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
            underlying_grid
 end
 
 function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution, 
-                            ::Val{true}, ::Val{:RealisticOcean}) 
+                            ::Val{true}, ::Val{:RealisticOcean}; Bottom = GridFittedBottom) 
 
     child_arch = child_architecture(arch)
     
@@ -46,7 +46,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                         halo = (7, 7, 7),
                         z = z_faces)
 
-    ibg = ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution))) 
+    ibg = ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution))) 
 
     load_per_x_slab = arch_array(child_arch, zeros(Int, N[1]))
     # load_per_y_slab = arch_array(child_arch, zeros(Int, N[2]))
@@ -77,7 +77,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                                   halo = (7, 7, 7),
                                                   z = z_faces)
 
-    return ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(realistic_bathymetry(underlying_grid, resolution)), true) 
+    return ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution)), true) 
 end
 
 @kernel function assess_x_load(load_per_slab, ibg)
