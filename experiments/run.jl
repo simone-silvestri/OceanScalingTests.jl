@@ -40,27 +40,20 @@ precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
 
-Δt = 20 # precision(45 * 48 / resolution)
+max_Δt = precision(45 * 48 * 1.5 / resolution)
+min_Δt = precision(45 * 48 * 0.9 / resolution)
 stop_time = 7300days
 
 if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt, stop_time; Nz, experiment, restart,
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt = (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, with_restoring, loadbalance, precision)
-
-increase_Δt1(sim) = sim.Δt = 30
-increase_Δt2(sim) = sim.Δt = 40
-increase_Δt3(sim) = sim.Δt = precision(45 * 48 / resolution)
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)
-    OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 10days)
-
-    simulation.callbacks[:increase_Δt1] = Callback(increase_Δt1, SpecifiedTimes([60days]))
-    simulation.callbacks[:increase_Δt2] = Callback(increase_Δt2, SpecifiedTimes([120days]))
-    simulation.callbacks[:increase_Δt3] = Callback(increase_Δt3, SpecifiedTimes([150days]))
+    OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 20days)
 
     pickup_file = isempty(restart) ? false :  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
     run!(simulation, pickup = pickup_file)

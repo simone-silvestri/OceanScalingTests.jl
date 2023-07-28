@@ -48,11 +48,13 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  with_restoring = true,
                                  loadbalance = true,
                                  precision = Float64,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision),
-                                 diffuse_initially = true)
+                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
+                                 )
 
     topo = (Periodic, Bounded, Bounded)
     arch = DistributedArch(child_arch; topology = topo, ranks)
+
+    min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
 
     Lφ = latitude[2] - latitude[1]
 
@@ -128,7 +130,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Simulation
     #####
 
-    simulation = Simulation(model; Δt, stop_time)
+    simulation = Simulation(model; Δt=min_Δt, stop_time)
  
     start_time = [time_ns()]
 
@@ -153,6 +155,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     end
 
     simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+    wizard = TimeStepWizard(cfl=0.35; max_change=1.1, max_Δt, min_Δt)
+    simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
     
     if experiment == :RealisticOcean 
         if with_fluxes 
