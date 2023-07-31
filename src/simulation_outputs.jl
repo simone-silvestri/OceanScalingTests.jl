@@ -1,8 +1,10 @@
-using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.Units
+using Oceananigans.Grids: halo_size
 using Oceananigans.BoundaryConditions
+using Oceananigans.OutputWriters: set_time_stepper!
+using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 
-import Oceananigans.OutputWriters: set!, set_time_stepper!
+import Oceananigans.OutputWriters: set!, set_time_stepper_tendencies!
 
 function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days) where Experiment
 
@@ -50,12 +52,8 @@ function set!(model, filepath::AbstractString)
             end
         end
 
+        load_free_surface!(model_fields.η, size(model_fields.T), file)
         set_time_stepper!(model.timestepper, file, model_fields)
-
-        η      = model_fields.η
-        η_file = file["η/data"][74:end-73, 8:end-7, :]
-        set!(η, η_file)
-        fill_halo_regions!(η)
 
         checkpointed_clock = file["clock"]
 
@@ -63,6 +61,19 @@ function set!(model, filepath::AbstractString)
         model.clock.iteration = checkpointed_clock.iteration
         model.clock.time = checkpointed_clock.time
     end
+
+    return nothing
+end
+
+function load_free_surface!(η, N, file)
+    Sη = size(file["η/data"])[1:2]
+    N  = N[1:2] 
+
+    Hx, Hy = Int.((Sη .- N) ./ 2)
+    
+    η_file = file["η/data"][Hx+1:end-Hx, Hy+1:end-Hy, :]
+    set!(η, η_file)
+    fill_halo_regions!(η)
 
     return nothing
 end
