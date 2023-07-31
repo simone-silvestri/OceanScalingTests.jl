@@ -10,7 +10,7 @@ using JLD2
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid; 
                              g = Oceananigans.BuoyancyModels.g_Earth, 
-                             CFL = 0.7)
+                             CFL = 0.75)
     wave_speed = sqrt(g * grid.Lz)
     local_Δ    = 1 / sqrt(1 / minimum_xspacing(grid)^2 + 1 / minimum_yspacing(grid)^2)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
@@ -78,7 +78,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     tracer_advection   = WENO(grid)
     momentum_advection = best_momentum_advection(grid, precision)
 
-    free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(Δt, grid))
+    free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(max_Δt, grid))
 
     @info "running with $(substeps(free_surface)) barotropic substeps"
 
@@ -119,7 +119,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     # If we are profiling launch only 100 time steps and mark each one with NVTX
     if profile
-        profiled_time_steps!(model, Δt, resolution)
+        profiled_time_steps!(model, max_Δt, resolution)
         return nothing
     end
    
