@@ -45,7 +45,7 @@ min_Δt = precision(45 * 48 * 0.9 / resolution)
 stop_time = 7300days
 
 if rank == 0
-    @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes with_restoring restart 
+    @info "Scaling test" ranks resolution max_Δt min_Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
