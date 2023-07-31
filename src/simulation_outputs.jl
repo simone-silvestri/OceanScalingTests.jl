@@ -1,5 +1,9 @@
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.Units
+using Oceananigans.OutputWriters: set_time_stepper!
+using Oceananigans.BoundaryConditions
+
+import Oceananigans.OutputWriters: set!
 
 function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days) where Experiment
 
@@ -31,3 +35,35 @@ function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, 
 end
 
 set_outputs!(simulation, ::Val{:Quiescent}) = nothing
+
+function set!(model, filepath::AbstractString)
+
+    jldopen(filepath, "r") do file
+
+        # Do NOT validate the grid!
+        model_fields = prognostic_fields(model)
+
+        for name in (:u, :v, :T, :S)
+            if string(name) ∈ keys(file) # Test if variable exist in checkpoint.
+                model_field = model_fields[name]
+                parent_data = file["$name/data"] #  Allow different halo size by loading only the interior
+                copyto!(model_field.data.parent, parent_data)
+            end
+        end
+
+        set_time_stepper!(model.timestepper, file, model_fields)
+
+        η      = model_fields.η
+        η_file = file["η/data"][74:end-73, 8:end-7, :]
+        set!(η, η_file)
+        fill_halo_regions!(η)
+
+        checkpointed_clock = file["clock"]
+
+        # Update model clock
+        model.clock.iteration = checkpointed_clock.iteration
+        model.clock.time = checkpointed_clock.time
+    end
+
+    return nothing
+end
