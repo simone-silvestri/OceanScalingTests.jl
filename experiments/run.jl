@@ -48,7 +48,7 @@ if rank == 0
     @info "Scaling test" ranks resolution Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, Δt = (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
+simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, with_restoring, loadbalance, precision)
 
 if !isnothing(simulation)
