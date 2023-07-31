@@ -1,9 +1,8 @@
 using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 using Oceananigans.Units
-using Oceananigans.OutputWriters: set_time_stepper!
 using Oceananigans.BoundaryConditions
 
-import Oceananigans.OutputWriters: set!
+import Oceananigans.OutputWriters: set!, set_time_stepper!
 
 function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days) where Experiment
 
@@ -63,6 +62,28 @@ function set!(model, filepath::AbstractString)
         # Update model clock
         model.clock.iteration = checkpointed_clock.iteration
         model.clock.time = checkpointed_clock.time
+    end
+
+    return nothing
+end
+
+function set_time_stepper_tendencies!(timestepper, file, model_fields)
+    for name in (:u, :v, :T, :S)
+        if string(name) ∈ keys(file["timestepper/Gⁿ"]) # Test if variable tendencies exist in checkpoint
+            # Tendency "n"
+            parent_data = file["timestepper/Gⁿ/$name/data"]
+
+            tendencyⁿ_field = timestepper.Gⁿ[name]
+            copyto!(tendencyⁿ_field.data.parent, parent_data)
+
+            # Tendency "n-1"
+            parent_data = file["timestepper/G⁻/$name/data"]
+
+            tendency⁻_field = timestepper.G⁻[name]
+            copyto!(tendency⁻_field.data.parent, parent_data)
+        else
+            @warn "Tendencies for $name do not exist in checkpoint and could not be restored."
+        end
     end
 
     return nothing
