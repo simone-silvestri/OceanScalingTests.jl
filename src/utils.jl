@@ -52,8 +52,6 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
 
     z_faces = OceanScalingTests.exponential_z_faces(Nz, Depth)
 
-    @show size
-
     full_grid = LatitudeLongitudeGrid(; size = full_size,
                                         longitude = (-180, 180),
                                         latitude = (-75, 75),
@@ -108,7 +106,7 @@ end
 
 function calc_free_surface_halo(irange, data)
     Nx = size(data, 1)
-    nx = size(irange)
+    nx = length(irange)
     return Int((Nx - nx) ÷ 2)
 end
 
