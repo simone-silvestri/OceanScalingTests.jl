@@ -46,7 +46,7 @@ function check_ranges(folder, ranks; H = 7, fields = false, time = 0, iteration 
 end
 
 function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5, 
-                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], Nsteps = 51, H = 7)
+                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], H = 7)
 
     Nx, Ny, Nz = full_size
 
@@ -91,7 +91,9 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
         @info "reading rank $rank"
 
         irange = iranges[rank+1]
-        data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"][Nsteps+1:end-Nsteps, 6:end-5, :]
+        data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"]
+        Hx = calc_free_surface_halo(irange, data)
+        data = data[Hx+1:end-Hx, H+1:end-H, :]
         compressed_η[irange, :, :] .= Float32.(data)
     end
 
@@ -102,6 +104,12 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
             f[string(key)] = value
         end
     end
+end
+
+function calc_free_surface_halo(irange, data)
+    Nx = size(data, 1)
+    nx = size(irange)
+    return Int((Nx - nx) ÷ 2)
 end
 
 function compress_surface_fields(full_size, ranks, folder = "../"; Nsteps = 33, H = 7)
