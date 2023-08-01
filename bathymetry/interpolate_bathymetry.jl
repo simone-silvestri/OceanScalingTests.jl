@@ -114,7 +114,7 @@ function remove_connected_regions(bat)
     batneg[batneg.>0] .= 0
     batneg[batneg.<0] .= 1
 
-    labels = sckikitimage.label(batneg, connectivity = 1)
+    labels = scikitimage.label(batneg, connectivity = 1)
     try
         total_elements = zeros(maximum(labels))
 

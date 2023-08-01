@@ -24,10 +24,10 @@ const ABOVE_SEA_LEVEL = 0.001
 include("utils.jl")
 include("interpolate_bathymetry.jl")
 
-const sckikitimage = PyNULL()
+const scikitimage = PyNULL()
 
 function __init__(; remove_existing_data=false)
-    copy!(sckikitimage, pyimport_conda("skimage.measure", "scikit-image"))
+    copy!(scikitimage, pyimport_conda("skimage.measure", "scikit-image"))
 
     # Bathymetry data from ETOPO1 converted to .jld2
     path = "https://dl.dropboxusercontent.com/s/33v6tye7sftt1ud/bathymetry-ice-21600x10800.jld2?dl=0"
