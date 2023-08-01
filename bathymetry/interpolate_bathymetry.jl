@@ -50,12 +50,10 @@ function interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude;
     # apparently bathymetry is reversed in the longitude direction, therefore we have to swap it
     bathy = reverse(bathy, dims = 2)
     
-    bathy[bathy .> 0] .= ABOVE_SEA_LEVEL
+    bathy[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL
 
     fixed_bathymetry = remove_connected_regions(bathy)
 
-    fixed_bathymetry[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL
-    
     return fixed_bathymetry
 end
 
@@ -116,7 +114,7 @@ function remove_connected_regions(bat)
     batneg[batneg.>0] .= 0
     batneg[batneg.<0] .= 1
 
-    labels = sckikitimage.label(batneg)
+    labels = sckikitimage.label(batneg, connectivity = 1)
     try
         total_elements = zeros(maximum(labels))
 
