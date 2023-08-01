@@ -1,7 +1,6 @@
 using Oceananigans.Units
 using Oceananigans.Grids: topology
 using Oceananigans.Operators: assumed_field_location
-using Oceananigans.ImmersedBoundaries: ActiveCellsIBG
 using KernelAbstractions: @kernel, @index
 using JLD2
 
@@ -30,11 +29,12 @@ function realistic_ocean_stop_time(final_year, final_month = 12)
     return simulation_days * days 
 end
 
-function check_ranges(folder, ranks, iteration; H = 7)
+function check_ranges(folder, ranks; H = 7, fields = false, time = 0, iteration = 0)
     Nx = Vector(undef, ranks)
     iranges = Vector(undef, ranks)
     for rank in 0:ranks - 1
-        var = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["u/data"][H+1:end-H, H+1:end-H, H+1:end-H]
+        var = fields ? jldopen(folder * "RealisticOcean_fields_$(rank).jld2")["timeseries/u/"*string(time)][H+1:end-H, H+1:end-H, 1] :
+                       jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["u/data"][H+1:end-H, H+1:end-H, H+1:end-H] 
         Nx[rank+1] = size(var, 1)
     end
     iranges[1] = UnitRange(1, Nx[1])
@@ -46,7 +46,7 @@ function check_ranges(folder, ranks, iteration; H = 7)
 end
 
 function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5, 
-                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], Nsteps = 33, H = 7)
+                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], Nsteps = 51, H = 7)
 
     Nx, Ny, Nz = full_size
 
@@ -65,7 +65,7 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
     fields_data[:underlying_grid] = full_grid
     fields_data[:bathymetry]      = bathymetry
 
-    iranges = check_ranges(folder, ranks, iteration; H)
+    iranges = check_ranges(folder, ranks; H, iteration)
 
     @info "starting the compression"
     for var in (:u, :w, :v, :T, :S)
@@ -86,18 +86,57 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
         fields_data[var] = compressed_data
     end
 
-    # compressed_η = zeros(Float32, Nx, Ny, 1)
-    # for rank in 0:ranks-1
-    #     @info "reading rank $rank"
+    compressed_η = zeros(Float32, Nx, Ny, 1)
+    for rank in 0:ranks-1
+        @info "reading rank $rank"
 
-    #     irange = iranges[rank+1]
-    #     data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"][Nsteps+1:end-Nsteps, 6:end-5, :]
-    #     compressed_η[irange, :, :] .= Float32.(data)
-    # end
+        irange = iranges[rank+1]
+        data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"][Nsteps+1:end-Nsteps, 6:end-5, :]
+        compressed_η[irange, :, :] .= Float32.(data)
+    end
 
-    # fields_data[:η] = compressed_η
+    fields_data[:η] = compressed_η
 
     jldopen("compressed_iteration_$(iteration).jld2","w") do f
+        for (key, value) in fields_data
+            f[string(key)] = value
+        end
+    end
+end
+
+function compress_surface_fields(full_size, ranks, folder = "../"; Nsteps = 33, H = 7)
+
+    Nx, Ny, Nz = full_size
+    Nz = 1
+
+    fields_data = Dict()
+
+    times   = keys(jldopen(folder * "RealisticOcean_fields_0.jld2")["timeseries/t"])
+    iranges = check_ranges(folder, ranks; H, fields = true, time = times[1])
+    Nt = length(times)
+
+    @info "starting the compression"
+    for var in (:u, :w, :v, :T, :S)
+        GC.gc()
+
+        @info "compressing variable $var"
+        sizefield = var == :v ? (Nx, Ny+1, Nt) :
+                    var == :w ? (Nx, Ny  , Nt) : (Nx, Ny, Nt)
+
+        compressed_data = zeros(Float32, sizefield...)
+
+        for rank in 0:ranks-1
+            @info "reading rank $rank"
+            irange = iranges[rank+1]
+            for (i, t) in enumerate(times)
+                compressed_data[irange, :, i] .= jldopen(folder * "RealisticOcean_fields_$(rank).jld2")["timeseries/"*string(var)*"/"*t][H+1:end-H, H+1:end-H, 1]
+            end
+        end
+
+        fields_data[var] = compressed_data
+    end
+
+    jldopen("compressed_surface_fields.jld2","w") do f
         for (key, value) in fields_data
             f[string(key)] = value
         end
