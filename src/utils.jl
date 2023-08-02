@@ -62,7 +62,7 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
     fields_data = Dict()
     fields_data[:underlying_grid] = full_grid
     fields_data[:bathymetry]      = bathymetry
-    fields_data[:clock] = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["clock"]
+    fields_data[:clock] = jldopen(folder * "RealisticOcean_checkpoint_0_iteration$(iteration).jld2")["clock"]
 
     iranges = check_ranges(folder, ranks; H, iteration)
 
