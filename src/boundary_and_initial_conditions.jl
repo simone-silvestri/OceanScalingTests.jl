@@ -188,7 +188,7 @@ end
 
     # Repeat year does mod(time, 365) otherwise take out the mod
     repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
-    filenum = repeat_year ? mod(Int(sim.model.clock.time ÷ 5days), 365) + 1 :
+    filenum = repeat_year ? Int(mod(sim.model.clock.time ÷ days, 365) ÷ 5) + 1 :
                                 Int(sim.model.clock.time ÷ 5days) + 1 
 
     model = sim.model
@@ -214,7 +214,7 @@ end
 
     # Repeat year does mod(time, 365) otherwise take out the mod
     repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
-    filenum = repeat_year ? mod(Int(sim.model.clock.time ÷ 15days), 365) + 1 :
+    filenum = repeat_year ? Int(mod(sim.model.clock.time ÷ days, 365) ÷ 15) + 1 :
                                 Int(sim.model.clock.time ÷ 15days) + 1 
 
     model = sim.model
