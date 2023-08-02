@@ -214,16 +214,22 @@ end
 
     # Repeat year does mod(time, 365) otherwise take out the mod
     repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
-    filenum = repeat_year ? Int(mod(sim.model.clock.time ÷ days, 365) ÷ 15) + 1 :
-                                Int(sim.model.clock.time ÷ 15days) + 1 
+    if repeat_year
+        year_days = mod(sim.model.clock.time ÷ days, 365)
+        filenum = mod(year_days, 15) == 0 ? Int(year_days ÷ 15) + 1 : nothing
+    else
+        filenum = Int(sim.model.clock.time ÷ 15days) + 1 
+    end
 
-    model = sim.model
-    grid  = model.grid
+    if !isnothing(filenum)
+        model = sim.model
+        grid  = model.grid
 
-    Tr = model.tracers.T.boundary_conditions.top.condition.parameters.Tr 
-    Sr = model.tracers.S.boundary_conditions.top.condition.parameters.Sr 
+        Tr = model.tracers.T.boundary_conditions.top.condition.parameters.Tr 
+        Sr = model.tracers.S.boundary_conditions.top.condition.parameters.Sr 
 
-    load_restoring!(grid, Tr, Sr, filenum)
+        load_restoring!(grid, Tr, Sr, filenum)
+    end
     
     return nothing
 end
