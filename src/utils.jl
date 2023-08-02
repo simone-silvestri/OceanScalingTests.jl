@@ -97,7 +97,7 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
 
     fields_data[:η] = compressed_η
 
-    jldopen("compressed_iteration_$(iteration).jld2","w") do f
+    jldopen(folder * "compressed_iteration_$(iteration).jld2","w") do f
         for (key, value) in fields_data
             f[string(key)] = value
         end
@@ -148,3 +148,30 @@ function compress_surface_fields(full_size, ranks, folder = "../"; Nsteps = 33, 
         end
     end
 end
+
+const regex = r"^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$";
+
+function compress_all_restarts(full_size, ranks, dir)
+    files = readdir(dir)
+    files = filter(x -> length(x) > 30, files)
+    files = filter(x -> x[1:26] == "RealisticOcean_checkpoint_", files)
+    iterations = Int[]
+    for file in files
+        file   = file[1:end-5]
+        string = ""
+        i = length(file)
+        while occursin(regex, "$(file[i])")
+            string = file[i] * string
+            i -= 1
+        end
+        push!(iterations, parse(Int, string))
+    end
+
+    iterations = unique(iterations)
+
+    for iter in iterations
+        compress_restart_file(full_size, ranks, iter, dir; bathymetry = nothing)
+    end
+end
+
+
