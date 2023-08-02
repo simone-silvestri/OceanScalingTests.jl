@@ -62,6 +62,7 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
     fields_data = Dict()
     fields_data[:underlying_grid] = full_grid
     fields_data[:bathymetry]      = bathymetry
+    fields_data[:clock] = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["clock"]
 
     iranges = check_ranges(folder, ranks; H, iteration)
 
@@ -142,7 +143,7 @@ function compress_surface_fields(full_size, ranks, folder = "../"; Nsteps = 33, 
         fields_data[var] = compressed_data
     end
 
-    jldopen("compressed_surface_fields.jld2","w") do f
+    jldopen(folder * "compressed_surface_fields.jld2","w") do f
         for (key, value) in fields_data
             f[string(key)] = value
         end
@@ -168,6 +169,7 @@ function compress_all_restarts(full_size, ranks, dir)
     end
 
     iterations = unique(iterations)
+    iterations = sort(iterations)
     for iter in iterations
         @info "compressing iteration $iter"
         compress_restart_file(full_size, ranks, iter, dir; bathymetry = nothing)
