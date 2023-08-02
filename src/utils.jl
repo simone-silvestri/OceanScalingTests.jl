@@ -168,8 +168,8 @@ function compress_all_restarts(full_size, ranks, dir)
     end
 
     iterations = unique(iterations)
-
     for iter in iterations
+        @info "compressing iteration $iter"
         compress_restart_file(full_size, ranks, iter, dir; bathymetry = nothing)
     end
 end
