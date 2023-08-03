@@ -14,7 +14,8 @@ Arguments
 =========
 
 - `resolution :: Float`: The lateral resolution (in degrees) of the output bathymetry.
-- `maximum_latitude :: Float`: The north/south latitudinal extent of the domain.
+- `latitude :: Tuple`: The south/north meridional extent of the domain.
+- `longitude :: Tuple`: The west/east zonal extent of the domain.
 
 Keyword Arguments
 =================
@@ -24,16 +25,21 @@ Keyword Arguments
 - `etopo1_file`: path to jld2 datafile containing the ETOPO1 bathymetry
 ```
 """
-function interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude; 
+function interpolate_bathymetry_from_ETOPO1(resolution, latitude, longitude = (-180, 180); 
                                             interpolation_method = LinearInterpolation(),
                                             minimum_depth = 6,
                                             etopo1_file = datadep"etopo1_bathymetry/bathymetry-ice-21600x10800.jld2")
 
     file = jldopen(etopo1_file)
     bathy_old = Float64.(file["bathymetry"])
+    
+    # apparently bathymetry is reversed in the latitude direction, therefore we have to swap it
+    bathy_old = reverse(bathy_old, dims = 2)
 
-    Nx = Int(360 * resolution)
-    Ny = Int(2maximum_latitude * resolution)
+    # original file is reversed
+
+    Nx = Int(abs(longitude[2] - longitude[1]) * resolution)
+    Ny = Int(abs(latitude[2]  - latitude[1] ) * resolution)
 
     if interpolation_method isa SpectralInterpolation
         if interpolation_method.spectral_coeff isa nothing
@@ -44,12 +50,9 @@ function interpolate_bathymetry_from_ETOPO1(resolution, maximum_latitude;
 
         bathy = bathymetry_from_etopo1(Nx, Ny, spectral_coeff, interpolation_method.filter_func)
     else 
-        bathy = interpolate_one_level_in_passes(bathy_old, size(bathy_old)..., Nx, Ny; interpolation_method)
+        bathy = interpolate_bathymetry_in_passes(bathy_old, size(bathy_old)..., Nx, Ny, latitude, longitude; interpolation_method)
     end
 
-    # apparently bathymetry is reversed in the longitude direction, therefore we have to swap it
-    bathy = reverse(bathy, dims = 2)
-    
     bathy[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL
 
     fixed_bathymetry = remove_connected_regions(bathy)

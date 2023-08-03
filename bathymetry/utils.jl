@@ -56,7 +56,7 @@ function interpolate_one_level(old_array, old_grid, new_grid; interpolation_meth
     return new_array
 end
 
-function interpolate_one_level_in_passes(array_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ; interpolation_method = LinearInterpolation())
+function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, Nyₙ, latitude, longitude; interpolation_method = LinearInterpolation())
 
     # switch bathymetry to centers?
 
@@ -71,8 +71,7 @@ function interpolate_one_level_in_passes(array_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ; 
     @assert Nxₒ == Nxₙ + passes * ΔNx
     @assert Nyₒ == Nyₙ + passes * ΔNy
     
-    array = deepcopy(array_old)
-    latitude = 75.0
+    array = deepcopy(old_bathymetry)
 
     for pass = 1:passes
         array_full = deepcopy(array)
@@ -81,12 +80,14 @@ function interpolate_one_level_in_passes(array_old, Nxₒ, Nyₒ, Nxₙ, Nyₙ; 
         Nx -= Int(ΔNx) 
         Ny -= Int(ΔNy)
         if pass == 1
-            oldlat = 89.9999999999999999
+            oldlat = (-90, 90) 
+            oldlon = (-180, 180)
         else
             oldlat = latitude
+            oldlon = longitude
         end
-        old_grid = RectilinearGrid(size = (Nxₒ, Nyₒ), y = (-oldlat,   oldlat),   x = (-180, 180), topology = (Periodic, Bounded, Flat))
-        new_grid = RectilinearGrid(size = (Nx,  Ny ), y = (-latitude, latitude), x = (-180, 180), topology = (Periodic, Bounded, Flat))
+        old_grid = RectilinearGrid(size = (Nxₒ, Nyₒ), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), topology = (Periodic, Bounded, Flat))
+        new_grid = RectilinearGrid(size = (Nx,  Ny ), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), topology = (Periodic, Bounded, Flat))
     
         @show Nxₒ, Nyₒ, Nx, Ny, pass
         array = interpolate_one_level(array_full, old_grid, new_grid; interpolation_method)
