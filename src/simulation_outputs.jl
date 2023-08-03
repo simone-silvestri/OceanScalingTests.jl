@@ -6,7 +6,7 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 
 import Oceananigans.OutputWriters: set!, set_time_stepper_tendencies!
 
-function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days) where Experiment
+function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days, output_dir = "./") where Experiment
 
     model   = simulation.model
 
@@ -24,12 +24,14 @@ function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, 
     rank = model.grid.architecture.local_rank
 
     simulation.output_writers[:surface] = JLD2OutputWriter(model, outputs;
+                                                           dir = output_dir, 
                                                            schedule = TimeInterval(surface_time),
                                                            filename = "$(Experiment)_fields_$rank",
                                                            with_halos = true,
                                                            overwrite_existing)
 
     simulation.output_writers[:checkpointer] = Checkpointer(model;
+                                                            dir = output_dir, 
                                                             schedule = TimeInterval(checkpoint_time),
                                                             prefix = "$(Experiment)_checkpoint_$rank",
                                                             overwrite_existing)
@@ -48,7 +50,8 @@ function set!(model, filepath::AbstractString)
             if string(name) ∈ keys(file) # Test if variable exist in checkpoint.
                 model_field = model_fields[name]
                 parent_data = file["$name/data"] #  Allow different halo size by loading only the interior
-                copyto!(model_field.data.parent, parent_data)
+                @info name size(parent_data) size(model_field)
+		copyto!(model_field.data.parent, parent_data)
             end
         end
 
@@ -70,7 +73,7 @@ function load_free_surface!(η, N, file)
     N  = N[1:2] 
 
     Hx, Hy = Int.((Sη .- N) ./ 2)
-    
+    @show Hx Hy 
     η_file = file["η/data"][Hx+1:end-Hx, Hy+1:end-Hy, :]
     set!(η, η_file)
     fill_halo_regions!(η)

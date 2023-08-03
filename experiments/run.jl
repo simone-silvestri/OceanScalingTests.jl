@@ -36,12 +36,13 @@ restart        =             get(ENV, "RESTART", "")
 Nz             = parse(Int,  get(ENV, "NZ", "100"))
 loadbalance    = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
+output_dir     = get(ENV, "OUTPUTDIR", "./")
 
 final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
 
 max_Δt = precision(45 * 48 * 1.5 / resolution)
-min_Δt = precision(45 * 48 * 0.9 / resolution)
+min_Δt = 5 # precision(45 * 48 * 0.9 / resolution)
 stop_time = 7300days
 
 if rank == 0
@@ -53,9 +54,9 @@ simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_�
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)
-    OceanScalingTests.set_outputs!(simulation, Val(experiment); overwrite_existing = true, checkpoint_time = 20days)
+    OceanScalingTests.set_outputs!(simulation, Val(experiment); output_dir, overwrite_existing = false, checkpoint_time = 10days)
 
-    pickup_file = isempty(restart) ? false :  "./RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+    pickup_file = isempty(restart) ? false :  output_dir * "RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
     run!(simulation, pickup = pickup_file)
 
     @info "simulation took $(prettytime(simulation.run_wall_time))"
