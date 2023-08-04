@@ -141,12 +141,14 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         v = sim.model.velocities.v
         w = sim.model.velocities.w
         η = sim.model.free_surface.η
+	T = sim.model.tracers.T
+	S = sim.model.tracers.S
 
         rk = sim.model.grid.architecture.local_rank
 
-	    @info @sprintf("Rank: %02d, Time: % 12s, it: %d, Δt: %.2f, vels: %.2e ms⁻¹ %.2e ms⁻¹ %.2e ms⁻¹, max(|η|): %.2e m, wt : %s", 
+	    @info @sprintf("R: %02d, T: % 12s, it: %d, Δt: %.2f, vels: %.2e %.2e %.2e, η: %.2e, trac: %.2e %.2e, wt : %s", 
                         rk, prettytime(sim.model.clock.time), sim.model.clock.iteration, sim.Δt, 
-                        maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η),
+                        maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η), maximum(abs, T), maximum(abs, S),
                         prettytime(wall_time))
 
         start_time[1] = time_ns()
