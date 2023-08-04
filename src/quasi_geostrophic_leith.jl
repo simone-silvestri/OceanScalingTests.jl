@@ -10,6 +10,7 @@ using Oceananigans.TurbulenceClosures:
         SmallSlopeIsopycnalTensor,
         AbstractScalarDiffusivity,
         ExplicitTimeDiscretization,
+        HorizontalFormulation,
         FluxTapering,
         isopycnal_rotation_tensor_xz_ccf,
         isopycnal_rotation_tensor_yz_ccf,
