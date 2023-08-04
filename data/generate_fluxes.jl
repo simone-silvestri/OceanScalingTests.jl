@@ -66,9 +66,9 @@ function read_and_interpolate_quarter_flux(name, iterations, Nx, Ny, Nj = 1; arc
 
     for j in 1:Nj
 
-        Δφ = 150 / Nj
+        Δφ = 160 / Nj
 
-        latitude = (- 75 + Δφ * (j - 1), - 75 + Δφ * j)
+        latitude = (- 80 + Δφ * (j - 1), - 80 + Δφ * j)
         
         Nφ = Int(Ny / Nj)
                     
@@ -123,7 +123,7 @@ function generate_fluxes(resolution; arch = GPU())
 
     # grid size
     Nx = Int(360 * resolution) 
-    Ny = Int(150 * resolution)
+    Ny = Int(160 * resolution)
 
     tmp  = zeros(Nx÷2, Ny,   6)
     tmpy = zeros(Nx÷2, Ny+1, 6)
@@ -160,7 +160,7 @@ function generate_restoring(resolution; arch = GPU())
 
     # grid size
     Nx = Int(360 * resolution) 
-    Ny = Int(150 * resolution)
+    Ny = Int(160 * resolution)
 
     tmp  = zeros(Nx÷2, Ny, 6)
 

@@ -45,10 +45,10 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     latitude_init = if filepath == datadep"ecco_initial_conditions/ecco-initial-conditions-19950101.jld2"
         (-90, 90)
     else
-        (-75, 75)
+        (-80, 80)
     end
 
-    Ny = Int(150 * resolution)
+    Ny = Int(160 * resolution)
 
     # the initial grid
     grid = LatitudeLongitudeGrid(arch; size = (nx, ny, nz),

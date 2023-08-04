@@ -39,7 +39,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  child_arch = GPU(),
                                  experiment = :Quiescent, 
                                  Depth = experiment_depth(experiment),
-                                 latitude = (-75, 75),
+                                 latitude = (-80, 80),
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
                                  Nz = 100,
@@ -48,7 +48,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  with_restoring = true,
                                  loadbalance = true,
                                  precision = Float64,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
+                                 boundary_layer_parameterization = ConvectiveAdjustmentVerticalDiffusivity(precision; convective_κz = 0.1)
                                  )
 
     topo = (Periodic, Bounded, Bounded)
@@ -74,16 +74,17 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     κz = 3e-5        
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
-    
-    tracer_advection   = WENO(grid)
-    momentum_advection = best_momentum_advection(grid, precision)
+    horizontal_diffusivity = HorizontalScalarDiffusivity(precision; ν=1e4, κ=1e3)    
+
+    tracer_advection   = Centered()
+    momentum_advection = VectorInvariant()
 
     free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(max_Δt, grid))
 
     @info "running with $(substeps(free_surface)) barotropic substeps"
 
     buoyancy = SeawaterBuoyancy(precision; equation_of_state=equation_of_state(Val(experiment), precision))
-    closure  = (vertical_diffusivity, boundary_layer_parameterization)
+    closure  = (vertical_diffusivity, boundary_layer_parameterization, horizontal_diffusivity)
     
     coriolis = HydrostaticSphericalCoriolis(precision)
 
