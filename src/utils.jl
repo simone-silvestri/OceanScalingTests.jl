@@ -111,7 +111,7 @@ function calc_free_surface_halo(irange, data)
     return Int((Nx - nx) ÷ 2)
 end
 
-function compress_surface_fields(full_size, ranks, folder = "../"; Nsteps = 33, H = 7)
+function compress_surface_fields(full_size, ranks, folder = "../"; suffix = "", H = 7)
 
     Nx, Ny, Nz = full_size
     Nz = 1
@@ -143,7 +143,7 @@ function compress_surface_fields(full_size, ranks, folder = "../"; Nsteps = 33, 
         fields_data[var] = compressed_data
     end
 
-    jldopen(folder * "compressed_surface_fields.jld2","w") do f
+    jldopen(folder * "compressed_surface_fields" * suffix * ".jld2","w") do f
         for (key, value) in fields_data
             f[string(key)] = value
         end

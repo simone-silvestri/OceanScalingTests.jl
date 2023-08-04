@@ -50,8 +50,7 @@ function set!(model, filepath::AbstractString)
             if string(name) ∈ keys(file) # Test if variable exist in checkpoint.
                 model_field = model_fields[name]
                 parent_data = file["$name/data"] #  Allow different halo size by loading only the interior
-                @info name size(parent_data) size(model_field)
-		copyto!(model_field.data.parent, parent_data)
+        		copyto!(model_field.data.parent, parent_data)
             end
         end
 
@@ -73,7 +72,6 @@ function load_free_surface!(η, N, file)
     N  = N[1:2] 
 
     Hx, Hy = Int.((Sη .- N) ./ 2)
-    @show Hx Hy 
     η_file = file["η/data"][Hx+1:end-Hx, Hy+1:end-Hy, :]
     set!(η, η_file)
     fill_halo_regions!(η)
