@@ -23,6 +23,8 @@ substeps(free_surface) = length(free_surface.settings.substepping.averaging_weig
 equation_of_state(::Val{E},            precision) where E = TEOS10EquationOfState(precision)
 equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfState(precision)
 
+experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
+
 using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConservingScheme
 
 previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
@@ -30,10 +32,10 @@ previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme 
                                                              ke_gradient_scheme = EnergyConservingScheme(precision),
                                                                       upwinding = CrossAndSelfUpwinding()) 
 
-experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
-
 best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
                                                             vertical_scheme = WENO(grid))
+
+simple_momentum_advection(grid, precision) = VectorInvariant()
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  child_arch = GPU(),
