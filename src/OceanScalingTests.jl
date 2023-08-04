@@ -23,6 +23,7 @@ using MPI
 include("bathymetry_and_forcings.jl")
 include("boundary_and_initial_conditions.jl")
 include("grid_load_balance.jl")
+include("quasi_geostrophic_leith.jl")
 include("near_global_simulation.jl")
 include("simulation_outputs.jl")
 include("utils.jl")
