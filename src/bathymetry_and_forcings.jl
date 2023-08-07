@@ -168,7 +168,7 @@ end
     return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
 end
 
-@inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ)
+@inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ, max_val, min_val)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
     n₁ = Int(floor(n))
@@ -178,11 +178,16 @@ end
     n  = mod(time_in_days, 15) ÷ 3 + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
-    Ri = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
-    restoring = λ * (Ri - field[i, j, grid.Nz])
+    restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
+
+    surf_val = @inbounds field[i, j, grid.Nz]
+
+    vᴾ = ifelse(min_val < surf_val < max_val, λ, Δzᶜᶜᶜ(i, j, grid.Nz, grid) / 7days)
+
+    restoring = vᴾ * (restoring_val - surf_val)
     return flux + restoring
 end
 
 # Restorings are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 15 (in steps of 3)
-@inline flux_and_restoring_T(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.T, p.Qs, p.Tr, p.λ)
-@inline flux_and_restoring_S(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.S, p.Fs, p.Sr, p.λ)
+@inline flux_and_restoring_T(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.T, p.Qs, p.Tr, p.λ, p.Tmax, p.Tmin)
+@inline flux_and_restoring_S(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.S, p.Fs, p.Sr, p.λ, p.Smax, p.Smin)

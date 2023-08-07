@@ -59,37 +59,36 @@ end
 function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, Nyₙ, latitude, longitude; interpolation_method = LinearInterpolation())
 
     # switch bathymetry to centers?
-
     passes = interpolation_method.passes
-
+    
     ΔNx = floor((Nxₒ - Nxₙ) / passes)
     ΔNy = floor((Nyₒ - Nyₙ) / passes)
 
-    Nx = deepcopy(Nxₒ)
-    Ny = deepcopy(Nyₒ)
+    Nx_all = [Nxₒ - ΔNx * pass for pass in 1:passes-1]
+    Ny_all = [Nyₒ - ΔNy * pass for pass in 1:passes-1]
 
-    @assert Nxₒ == Nxₙ + passes * ΔNx
-    @assert Nyₒ == Nyₙ + passes * ΔNy
-    
+    Nx_all = Int[Nxₒ, Nx_all..., Nxₙ]
+    Ny_all = Int[Nyₒ, Ny_all..., Nyₙ]
+
     array = deepcopy(old_bathymetry)
 
-    for pass = 1:passes
+    for pass = 2:passes+1
         array_full = deepcopy(array)
-        Nxₒ = Nx
-        Nyₒ = Ny
-        Nx -= Int(ΔNx) 
-        Ny -= Int(ΔNy)
-        if pass == 1
+        nxₒ = Nx_all[pass-1]
+        nyₒ = Ny_all[pass-1]
+        nx  = Nx_all[pass]
+        ny  = Ny_all[pass]
+        if pass == 2
             oldlat = (-90, 90) 
             oldlon = (-180, 180)
         else
             oldlat = latitude
             oldlon = longitude
         end
-        old_grid = RectilinearGrid(size = (Nxₒ, Nyₒ), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), topology = (Periodic, Bounded, Flat))
-        new_grid = RectilinearGrid(size = (Nx,  Ny ), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), topology = (Periodic, Bounded, Flat))
+        old_grid = RectilinearGrid(size = (nxₒ, nyₒ), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), topology = (Periodic, Bounded, Flat))
+        new_grid = RectilinearGrid(size = (nx,  ny ), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), topology = (Periodic, Bounded, Flat))
     
-        @show Nxₒ, Nyₒ, Nx, Ny, pass
+        @show nxₒ, nyₒ, nx, ny, pass
         array = interpolate_one_level(array_full, old_grid, new_grid; interpolation_method)
     end
 
