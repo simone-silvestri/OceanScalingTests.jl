@@ -169,22 +169,23 @@ end
 end
 
 @inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ, max_val, min_val)
-    time_in_days = clock.time / 1days
-    n  = mod(time_in_days, 5) + 1
-    n₁ = Int(floor(n))
-    n₂ = Int(n₁ + 1)    
-    flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
+    @inbounds begin
+        surf_val = field[i, j, grid.Nz]
+        
+        time_in_days = clock.time / 1days
+        n  = mod(time_in_days, 5) + 1
+        n₁ = Int(floor(n))
+        n₂ = Int(n₁ + 1)    
+        flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
+        flux = ifelse(min_val < surf_val < max_val, flux, zero(grid))
 
-    n  = mod(time_in_days, 15) ÷ 3 + 1
-    n₁ = Int(floor(n))
-    n₂ = Int(n₁ + 1)    
-    restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
+        n  = mod(time_in_days, 15) ÷ 3 + 1
+        n₁ = Int(floor(n))
+        n₂ = Int(n₁ + 1)    
+        restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
 
-    surf_val = @inbounds field[i, j, grid.Nz]
-
-    vᴾ = ifelse(min_val < surf_val < max_val, λ, Δzᶜᶜᶜ(i, j, grid.Nz, grid) / 7days)
-
-    restoring = vᴾ * (restoring_val - surf_val)
+        restoring = λ * (restoring_val - surf_val)
+    end
     return flux + restoring
 end
 
