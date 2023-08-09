@@ -14,7 +14,9 @@ using Oceananigans.TurbulenceClosures:
         FluxTapering,
         isopycnal_rotation_tensor_xz_ccf,
         isopycnal_rotation_tensor_yz_ccf,
-        isopycnal_rotation_tensor_zz_ccf
+        isopycnal_rotation_tensor_zz_ccf,
+        isopycnal_rotation_tensor_xz_fcc,
+        isopycnal_rotation_tensor_yz_cfc
 
 import Oceananigans.TurbulenceClosures:
         calculate_diffusivities!,
@@ -43,7 +45,7 @@ end
 QGLeith(FT::DataType=Float64; C=FT(2), min_N²=FT(1e-20), Vscale=FT(1),
         isopycnal_model=SmallSlopeIsopycnalTensor(), 
         slope_limiter=FluxTapering(1e-2)) =
-    QGLeith(C, min_N², isopycnal_model, slope_limiter) 
+    QGLeith(C, min_N², Vscale, isopycnal_model, slope_limiter) 
 
 DiffusivityFields(grid, tracer_names, bcs, ::QGLeith) = 
                 (; νₑ = CenterField(grid),
@@ -153,6 +155,52 @@ end
 ##### Abstract Smagorinsky functionality
 #####
 
-@inline diffusive_flux_x(i, j, k, grid, closure::QGLeith, diffusivities, ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index = zero(grid)
-@inline diffusive_flux_y(i, j, k, grid, closure::QGLeith, diffusivities, ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index = zero(grid)
-@inline diffusive_flux_z(i, j, k, grid, closure::QGLeith, diffusivities, ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index = zero(grid)
+@inline function diffusive_flux_x(i, j, k, grid, closure::QGLeith, diffusivities, 
+                                  ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index
+
+    νₑ    = diffusivities.νₑ
+    νₑⁱʲᵏ = ℑxᶠᵃᵃ(i, j, k, grid, νₑ)
+    ∂x_c  = ∂xᶠᶜᶜ(i, j, k, grid, c)
+    ∂z_c  = ℑxzᶠᵃᶜ(i, j, k, grid, ∂zᶜᶜᶠ, c)
+
+    ϵ = tapering_factor(i, j, k, grid, closure, fields, buoyancy)
+    R₁₃ = isopycnal_rotation_tensor_xz_fcc(i, j, k, grid, buoyancy, fields, closure.isopycnal_model)
+
+    return - νₑⁱʲᵏ * ϵ * (∂x_c + R₁₃ * ∂z_c)  
+end
+
+@inline function diffusive_flux_y(i, j, k, grid, closure::QGLeith, diffusivities,
+                                  ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index
+
+    νₑ    = diffusivities.νₑ
+    νₑⁱʲᵏ = ℑyᶠᵃᵃ(i, j, k, grid, νₑ)
+    ∂y_c  = ∂yᶜᶠᶜ(i, j, k, grid, c)
+    ∂z_c  = ℑyzᵃᶠᶜ(i, j, k, grid, ∂zᶜᶜᶠ, c)
+
+    ϵ = tapering_factor(i, j, k, grid, closure, fields, buoyancy)
+    R₂₃ = isopycnal_rotation_tensor_yz_cfc(i, j, k, grid, buoyancy, fields, closure.isopycnal_model)
+
+    return - νₑⁱʲᵏ * ϵ * (∂y_c + R₂₃ * ∂z_c)  
+end
+
+@inline function diffusive_flux_z(i, j, k, grid, closure::QGLeith, diffusivities, 
+                                  ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index
+
+    νₑ = diffusivities.νₑ
+
+    νₑⁱʲᵏ = ℑzᵃᵃᶠ(i, j, k, grid, νₑ)
+
+    ∂x_c = ℑxzᶜᵃᶠ(i, j, k, grid, ∂xᶠᶜᶜ, c)
+    ∂y_c = ℑyzᵃᶜᶠ(i, j, k, grid, ∂yᶜᶠᶜ, c)
+    ∂z_c = ∂zᶜᶜᶠ(i, j, k, grid, c)
+
+    R₃₁ = isopycnal_rotation_tensor_xz_ccf(i, j, k, grid, buoyancy, fields, closure.isopycnal_model)
+    R₃₂ = isopycnal_rotation_tensor_yz_ccf(i, j, k, grid, buoyancy, fields, closure.isopycnal_model)
+    R₃₃ = isopycnal_rotation_tensor_zz_ccf(i, j, k, grid, buoyancy, fields, closure.isopycnal_model)
+
+    ϵ = tapering_factor(i, j, k, grid, closure, fields, buoyancy)
+
+    return - νₑⁱʲᵏ * ϵ * (R₃₁ * ∂x_c +
+                          R₃₂ * ∂y_c + 
+                          R₃₃ * ∂z_c)
+end
