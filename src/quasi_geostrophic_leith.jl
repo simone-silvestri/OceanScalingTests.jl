@@ -173,7 +173,7 @@ end
                                   ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index
 
     νₑ    = diffusivities.νₑ
-    νₑⁱʲᵏ = ℑyᶠᵃᵃ(i, j, k, grid, νₑ)
+    νₑⁱʲᵏ = ℑyᵃᶠᵃ(i, j, k, grid, νₑ)
     ∂y_c  = ∂yᶜᶠᶜ(i, j, k, grid, c)
     ∂z_c  = ℑyzᵃᶠᶜ(i, j, k, grid, ∂zᶜᶜᶠ, c)
 
