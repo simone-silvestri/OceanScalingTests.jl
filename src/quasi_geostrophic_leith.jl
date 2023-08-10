@@ -49,9 +49,11 @@ QGLeith(FT::DataType=Float64; C=FT(2), min_N²=FT(1e-20), Vscale=FT(1),
 
 DiffusivityFields(grid, tracer_names, bcs, ::QGLeith) = 
                 (; νₑ = CenterField(grid),
+                   qʸ  = ZFaceField(grid),
+                   qˣ  = ZFaceField(grid),
                    Ld = Field{Center, Center, Nothing}(grid))
 
-@inline function abs²_∇h_ζ(i, j, k, grid, coriolis, fields)
+@inline function ∇h_ζ(i, j, k, grid, coriolis, fields)
 
     ∂xζ = ℑyᵃᶜᵃ(i, j, k, grid, ∂xᶜᶠᶜ, ζ₃ᶠᶠᶜ, fields.u, fields.v)
     ∂yζ = ℑxᶜᵃᵃ(i, j, k, grid, ∂yᶠᶜᶜ, ζ₃ᶠᶠᶜ, fields.u, fields.v)
@@ -70,30 +72,15 @@ end
     return (∂xδ^2 + ∂yδ^2)
 end
 
-@inline ∂yb_times_f2_div_N2(i, j, k, grid, clo, coriolis, buoyancy, tracers) = ℑxyᶜᶜᵃ(i, j, k, grid, fᶠᶠᵃ, coriolis) / 
-                                                                               max(clo.min_N², ∂z_b(i, j, k, grid, buoyancy, tracers)) *
-                                                                               ℑyzᵃᶜᶠ(i, j, k, grid, ∂y_b, buoyancy, tracers)
-
-@inline ∂xb_times_f2_div_N2(i, j, k, grid, clo, coriolis, buoyancy, tracers) = ℑxyᶜᶜᵃ(i, j, k, grid, fᶠᶠᵃ, coriolis) / 
-                                                                               max(clo.min_N², ∂z_b(i, j, k, grid, buoyancy, tracers))  *
-                                                                               ℑxzᶜᵃᶠ(i, j, k, grid, ∂x_b, buoyancy, tracers)
-
-@inline function abs²_∇h_q(i, j, k, grid, closure, coriolis, buoyancy, tracers)
-
-    ∂zqx = ∂zᶜᶜᶜ(i, j, k, grid, ∂xb_times_f2_div_N2, closure, coriolis, buoyancy, tracers)
-    ∂zqy = ∂zᶜᶜᶜ(i, j, k, grid, ∂yb_times_f2_div_N2, closure, coriolis, buoyancy, tracers)
-
-    return ∂zqx, ∂zqy
-end
-
 "Return the filter width for a Leith Diffusivity on a general grid."
 @inline Δ²ᶜᶜᶜ(i, j, k, grid) =  2 * (1 / (1 / Δxᶜᶜᶜ(i, j, k, grid)^2 + 1 / Δyᶜᶜᶜ(i, j, k, grid)^2))
 
-@kernel function calculate_qgleith_viscosity!(ν, Ld, grid, closure, velocities, tracers, buoyancy, coriolis)
+@kernel function calculate_qgleith_viscosity!(ν, Ld, qˣ, qʸ, grid, closure, velocities, tracers, buoyancy, coriolis)
     i, j, k = @index(Global, NTuple)
 
-    ∂ζx, ∂ζy =  abs²_∇h_ζ(i, j, k, grid, coriolis, velocities)
-    ∂qx, ∂qy =  abs²_∇h_q(i, j, k, grid, closure, coriolis, buoyancy, tracers)
+    ∂ζx, ∂ζy =  ∇h_ζ(i, j, k, grid, coriolis, velocities)
+    ∂qx = ∂zᶜᶜᶜ(i, j, k, grid, qˣ)
+    ∂qy = ∂zᶜᶜᶜ(i, j, k, grid, qʸ) 
 
     ∂δ² =  abs²_∇h_δ(i, j, k, grid, velocities)
 
@@ -114,6 +101,23 @@ end
     C = closure.C
 
     @inbounds ν[i, j, k] = (C * Δs / π)^(3) * sqrt(∂Q² + ∂δ²) 
+end
+
+@inline ∂yb_times_f2_div_N2(i, j, k, grid, clo, coriolis, buoyancy, tracers) = ℑxyᶜᶜᵃ(i, j, k, grid, fᶠᶠᵃ, coriolis) / 
+                                                                               max(clo.min_N², ∂z_b(i, j, k, grid, buoyancy, tracers)) *
+                                                                               ℑyzᵃᶜᶠ(i, j, k, grid, ∂y_b, buoyancy, tracers)
+
+@inline ∂xb_times_f2_div_N2(i, j, k, grid, clo, coriolis, buoyancy, tracers) = ℑxyᶜᶜᵃ(i, j, k, grid, fᶠᶠᵃ, coriolis) / 
+                                                                               max(clo.min_N², ∂z_b(i, j, k, grid, buoyancy, tracers))  *
+                                                                               ℑxzᶜᵃᶠ(i, j, k, grid, ∂x_b, buoyancy, tracers)
+
+@kernel function compute_stretching!(qˣ, qʸ, grid, closure, tracers, buoyancy, coriolis)
+    i, j, k = @index(Global, NTuple)
+
+    @inbounds begin
+        qˣ[i, j, k] = ∂xb_times_f2_div_N2(i, j, k, grid, closure, coriolis, buoyancy, tracers)
+        qʸ[i, j, k] = ∂yb_times_f2_div_N2(i, j, k, grid, closure, coriolis, buoyancy, tracers)
+    end
 end
 
 @inline _deformation_radius(i, j, k, grid, C, buoyancy, coriolis) = sqrt(max(0, ∂z_b(i, j, k, grid, buoyancy, C))) / π /
@@ -140,6 +144,9 @@ function calculate_diffusivities!(diffusivity_fields, closure::QGLeith, model; p
 
     launch!(arch, grid, :xy, 
             calculate_deformation_radius!, diffusivity_fields.Ld, grid, tracers, buoyancy, coriolis)
+
+    launch!(arch, grid, parameters,
+            compute_stretching!, diffusivity_fields.qˣ, diffusivity_fields.qʸ, grid, closure, tracers, buoyancy, coriolis)
 
     launch!(arch, grid, parameters,
             calculate_qgleith_viscosity!,
