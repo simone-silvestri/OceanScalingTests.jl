@@ -75,7 +75,7 @@ end
 "Return the filter width for a Leith Diffusivity on a general grid."
 @inline Δ²ᶜᶜᶜ(i, j, k, grid) =  2 * (1 / (1 / Δxᶜᶜᶜ(i, j, k, grid)^2 + 1 / Δyᶜᶜᶜ(i, j, k, grid)^2))
 
-@kernel function calculate_qgleith_viscosity!(ν, Ld, qˣ, qʸ, grid, closure, velocities, tracers, buoyancy, coriolis)
+@kernel function calculate_qgleith_viscosity!(ν, Ld, qˣ, qʸ, grid, closure, velocities, coriolis)
     i, j, k = @index(Global, NTuple)
 
     ∂ζx, ∂ζy =  ∇h_ζ(i, j, k, grid, coriolis, velocities)
@@ -150,7 +150,9 @@ function calculate_diffusivities!(diffusivity_fields, closure::QGLeith, model; p
 
     launch!(arch, grid, parameters,
             calculate_qgleith_viscosity!,
-            diffusivity_fields.νₑ, diffusivity_fields.Ld, grid, closure, velocities, tracers, buoyancy, coriolis)
+            diffusivity_fields.νₑ, diffusivity_fields.Ld, 
+            diffusivity_fields.qˣ, diffusivity_fields.qʸ, 
+            grid, closure, velocities, coriolis)
 
     return nothing
 end
