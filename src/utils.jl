@@ -173,6 +173,13 @@ function compress_all_restarts(full_size, ranks, dir)
     for iter in iterations
         @info "compressing iteration $iter"
         compress_restart_file(full_size, ranks, iter, dir; bathymetry = nothing)
+        @info "removing iteration $iter"
+
+        for rank in 0:ranks-1
+            to_remove = "RealisticOcean_checkpoint_$(rank)_iteration$(iter).jld2"
+            cmd = `rm $to_remove`
+            run(cmd)
+        end
     end
 end
 

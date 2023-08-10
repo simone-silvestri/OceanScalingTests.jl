@@ -130,7 +130,7 @@ end
     end
 end
 
-function calculate_diffusivities!(diffusivity_fields, closure::QGLeith, model)
+function calculate_diffusivities!(diffusivity_fields, closure::QGLeith, model; parameters = :xyz)
     arch = model.architecture
     grid = model.grid
     velocities = model.velocities
@@ -141,7 +141,7 @@ function calculate_diffusivities!(diffusivity_fields, closure::QGLeith, model)
     launch!(arch, grid, :xy, 
             calculate_deformation_radius!, diffusivity_fields.Ld, grid, tracers, buoyancy, coriolis)
 
-    launch!(arch, grid, :xyz,
+    launch!(arch, grid, parameters,
             calculate_qgleith_viscosity!,
             diffusivity_fields.νₑ, diffusivity_fields.Ld, grid, closure, velocities, tracers, buoyancy, coriolis)
 
@@ -155,6 +155,11 @@ end
 ##### Abstract Smagorinsky functionality
 #####
 
+@inline diffusive_flux_x(i, j, k, grid, closure::QGLeith, diffusivities, ::Val{tracer_index}, args...) where tracer_index = zero(grid)
+@inline diffusive_flux_y(i, j, k, grid, closure::QGLeith, diffusivities, ::Val{tracer_index}, args...) where tracer_index = zero(grid)
+@inline diffusive_flux_z(i, j, k, grid, closure::QGLeith, diffusivities, ::Val{tracer_index}, args...) where tracer_index = zero(grid)
+
+#=
 @inline function diffusive_flux_x(i, j, k, grid, closure::QGLeith, diffusivities, 
                                   ::Val{tracer_index}, c, clock, fields, buoyancy) where tracer_index
 
@@ -204,3 +209,4 @@ end
                           R₃₂ * ∂y_c + 
                           R₃₃ * ∂z_c)
 end
+=#
