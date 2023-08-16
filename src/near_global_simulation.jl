@@ -77,7 +77,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
-    tracer_advection   = WENO(grid)
+    tracer_advection   = WENO(grid; order = 7)
     momentum_advection = best_momentum_advection(grid, precision)
 
     free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(max_Δt, grid))
