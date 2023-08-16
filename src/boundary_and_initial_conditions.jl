@@ -102,9 +102,11 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
 
             load_restoring!(grid, Tr, Sr, 1)
 
+            Δz = minimum_zspacing(grid)
+
             # If temperature or salinity are outside the physical range, crank up restoring velocity
-            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=1/60days, Tmax = 55, Tmin = -10))
-            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=1/60days, Smax = 55, Smin = 0))
+            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=Δz/30days))
+            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=Δz/60days))
         else
             T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
             S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
