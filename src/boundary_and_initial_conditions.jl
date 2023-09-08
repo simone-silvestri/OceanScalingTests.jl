@@ -36,8 +36,8 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
           @info "loading level $k"
        end
 
-       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/T12y_at$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
-       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/S12y_at$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
+       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_T_at_k$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
+       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_S_at_k$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
     end
 
     set!(model, T = T_init, S = S_init)
@@ -80,7 +80,7 @@ function set_boundary_conditions(::Val{:DoubleDrake}, grid; kw...)
     return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
-function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = true)
+function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = true, with_restoring = true)
 
     arch = architecture(grid)
 
@@ -91,13 +91,26 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
         τy = arch_array(arch, zeros(eltype(grid), Nx, Ny+1, 6))
         Qs = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
         Fs = arch_array(arch, zeros(eltype(grid), Nx, Ny  , 6))
-
+        
         load_fluxes!(grid, τx, τy, Qs, Fs, 1)
-
+        
         u_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τx)    
         v_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τy)
-        T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
-        S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
+        if with_restoring
+            Tr = arch_array(arch, zeros(eltype(grid), Nx, Ny, 6))
+            Sr = arch_array(arch, zeros(eltype(grid), Nx, Ny, 6))
+
+            load_restoring!(grid, Tr, Sr, 1)
+
+            Δz = minimum_zspacing(grid)
+
+            # If temperature or salinity are outside the physical range, crank up restoring velocity
+            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=Δz/30days))
+            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=Δz/60days))
+        else
+            T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
+            S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
+        end
     else
         u_top_bc = FluxBoundaryCondition(zero(grid))    
         v_top_bc = FluxBoundaryCondition(zero(grid))
@@ -132,7 +145,7 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
         @info "loading fluxes from file fluxes_$(filenum).jld2"
     end
 
-    file = jldopen("fluxes/fluxes_$(filenum).jld2")
+    file = jldopen("data/fluxes_$(filenum).jld2")
     
     # Garbage collect!!
     GC.gc()
@@ -150,10 +163,36 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     return nothing
 end
 
-# Update fluxes through a Callback every 5days.
-@inline function update_fluxes(sim)
+function load_restoring!(grid, Tr, Sr, filenum)
+    arch = architecture(grid)
+    rx   = arch.local_rank
+    nx, ny, _ = size(grid) 
 
-    filenum = Int((sim.model.clock.time + 10) ÷ 5days) + 1
+    if rx == 1
+        @info "loading fluxes from file restoring_$(filenum).jld2"
+    end
+
+    file = jldopen("data/restoring_$(filenum).jld2")
+    
+    # Garbage collect!!
+    GC.gc()
+
+    Trtmp = partition_global_array(arch, file["Tr"], (nx, ny, 6))
+    Srtmp = partition_global_array(arch, file["Sr"], (nx, ny, 6))
+
+    copyto!(Tr, Trtmp)
+    copyto!(Sr, Srtmp)
+
+    return nothing
+end
+
+# Update fluxes through a Callback every 5days.
+@inline function update_fluxes!(sim)
+
+    # Repeat year does mod(time, 365) otherwise take out the mod
+    repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
+    filenum = repeat_year ? Int(mod(sim.model.clock.time ÷ days, 365) ÷ 5) + 1 :
+                                Int(sim.model.clock.time ÷ 5days) + 1 
 
     model = sim.model
     grid  = model.grid
@@ -164,7 +203,36 @@ end
     Qs = model.tracers.T.boundary_conditions.top.condition.parameters 
     Fs = model.tracers.S.boundary_conditions.top.condition.parameters 
 
+    # Take care of case with restoring
+    Qs = Qs isa NamedTuple ? Qs.Qs : Qs
+    Fs = Fs isa NamedTuple ? Fs.Fs : Fs
+
     load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
+    
+    return nothing
+end
+
+# Update restoring through a Callback every 15days.
+@inline function update_restoring!(sim)
+
+    # Repeat year does mod(time, 365) otherwise take out the mod
+    repeat_year = parse(Bool, get(ENV, "REPEATYEAR", "true"))
+    if repeat_year
+        year_days = mod(sim.model.clock.time ÷ days, 365)
+        filenum = mod(year_days, 15) == 0 ? Int(year_days ÷ 15) + 1 : nothing
+    else
+        filenum = Int(sim.model.clock.time ÷ 15days) + 1 
+    end
+
+    if !isnothing(filenum)
+        model = sim.model
+        grid  = model.grid
+
+        Tr = model.tracers.T.boundary_conditions.top.condition.parameters.Tr 
+        Sr = model.tracers.S.boundary_conditions.top.condition.parameters.Sr 
+
+        load_restoring!(grid, Tr, Sr, filenum)
+    end
     
     return nothing
 end

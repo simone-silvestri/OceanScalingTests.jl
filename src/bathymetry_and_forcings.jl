@@ -1,9 +1,12 @@
-using Oceananigans.Grids: ynode
+using Oceananigans.Grids: φnode
 using Oceananigans.Distributed
 using Oceananigans.Distributed: DistributedGrid, partition_global_array
+using Oceananigans.Operators
 using DataDeps
 
-function z_from_ecco(Nz, Depth)
+ECCO_z_faces(Nz, Depth) = ECCO_z_faces(Nz)
+
+function ECCO_z_faces(Nz = 48)
 
     if Nz != 48
 	    throw(ArgumentError("Not ecco grid!!"))
@@ -65,9 +68,9 @@ end
 
 # Assumes there is a jld2 file called bathymetry.jld2 in the data folder
 realistic_bathymetry(grid::DistributedGrid, resolution) = 
-      partition_global_array(architecture(grid), eltype(grid).(jldopen("data/bathymetry$(resolution).jld2")["bathymetry"]), size(grid))
+      partition_global_array(architecture(grid), eltype(grid).(jldopen("bathymetry/bathymetry$(resolution).jld2")["bathymetry"]), size(grid))
 
-realistic_bathymetry(grid, resolution) = eltype(grid).(jldopen("data/bathymetry$(resolution).jld2")["bathymetry"])
+realistic_bathymetry(grid, resolution) = eltype(grid).(jldopen("bathymetry/bathymetry$(resolution).jld2")["bathymetry"])
 
 @inline function cubic_profile(x1, x2, y1, y2, d1, d2)
     A = [ x1^3 x1^2 x1 1.0
@@ -124,8 +127,6 @@ end
     return coeff[1] * φ^3 + coeff[2] * φ^2 + coeff[3] * φ + coeff[4]
 end
 
-using Oceananigans.Operators
-
 @inline ϕ²(i, j, k, grid, ϕ)    = @inbounds ϕ[i, j, k]^2
 @inline spᶠᶜᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.u[i, j, k]^2 + ℑxyᶠᶜᵃ(i, j, k, grid, ϕ², Φ.v))
 @inline spᶜᶠᶜ(i, j, k, grid, Φ) = @inbounds sqrt(Φ.v[i, j, k]^2 + ℑxyᶜᶠᵃ(i, j, k, grid, ϕ², Φ.u))
@@ -141,27 +142,52 @@ using Oceananigans.Operators
 @inline v_linear_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1]
 
 @inline function surface_stress_x(i, j, grid, clock, fields, p)
-    φ = ynode(Center(), j, grid)
+    φ = φnode(j, grid, Center())
     return wind_stress(φ, p)
 end
 
 @inline function surface_salinity_flux(i, j, grid, clock, fields, p)
-    φ = ynode(Center(), j, grid)
+    φ = φnode(j, grid, Center())
     return salinity_flux(φ, p)
 end
 
 @inline T_reference(φ) = max(0.0, 30.0 * cos(1.2 * π * φ / 180))
 
 @inline function T_relaxation(i, j, grid, clock, fields, λ)
-    φ = ynode(Center(), j, grid)
+    φ = φnode(j, grid, Center())
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
-# Fluxes are saved as [Nt, Nx, Ny] where Nt = 1:6 and represents day 0 to day 5
+# Fluxes are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 5
 @inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
     n₁ = Int(floor(n))
     n₂ = Int(n₁ + 1)    
+
     return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
 end
+
+@inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ)
+    @inbounds begin
+        surf_val = field[i, j, grid.Nz]
+        
+        time_in_days = clock.time / 1days
+        n  = mod(time_in_days, 5) + 1
+        n₁ = Int(floor(n))
+        n₂ = Int(n₁ + 1)    
+        flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
+
+        n  = mod(time_in_days, 15) ÷ 3 + 1
+        n₁ = Int(floor(n))
+        n₂ = Int(n₁ + 1)    
+        restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
+
+        restoring = λ * (surf_val - restoring_val)
+    end
+    return flux + restoring
+end
+
+# Restorings are saved as [Nx, Ny, Nt] where Nt = 1:6 and represents day 0 to day 15 (in steps of 3)
+@inline flux_and_restoring_T(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.T, p.Qs, p.Tr, p.λ)
+@inline flux_and_restoring_S(i, j, grid, clock, fields, p) = _flux_and_restoring(i, j, grid, clock, fields.S, p.Fs, p.Sr, p.λ)
