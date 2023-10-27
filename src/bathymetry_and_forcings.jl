@@ -1,6 +1,6 @@
 using Oceananigans.Grids: φnode
-using Oceananigans.Distributed
-using Oceananigans.Distributed: DistributedGrid, partition_global_array
+using Oceananigans.DistributedComputations
+using Oceananigans.DistributedComputations: DistributedGrid, partition_global_array
 using Oceananigans.Operators
 using DataDeps
 

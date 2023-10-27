@@ -5,6 +5,7 @@ if iscray
     import Libdl
     Libdl.dlopen_e("libmpi_gtl_cuda", Libdl.RTLD_LAZY | Libdl.RTLD_GLOBAL)
 end
+
 using MPI
 MPI.Init()
 

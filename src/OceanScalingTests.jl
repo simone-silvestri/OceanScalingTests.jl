@@ -7,7 +7,7 @@ using NVTX
 using Oceananigans
 using Oceananigans.Units
 
-using Oceananigans.Distributed
+using Oceananigans.DistributedComputations
 using Oceananigans.Fields: interpolate, Field
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Coriolis: HydrostaticSphericalCoriolis
