@@ -177,15 +177,15 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     
     for i in 1:Nλ+1
         for j in 1:Nφ+1
-            λF[i, j] = 180 / π * (atan(yt[i, j] / xt[i, j]))              
+            λF[i, j] = - 180 / π * (atan(yt[i, j] / xt[i, j]))              
             φF[i, j] = 90 - 360 / π * atan(sqrt(yt[i, j]^2 + xt[i, j]^2)) 
         end
     end
 
     # Rotate the λ direction accordingly
     for i in 1:Nλ÷2
-        λF[i, :] .+= 90
-        λF[i+Nλ÷2, :] .-= 90
+        λF[i, :] .-= 90
+        λF[i+Nλ÷2, :] .+= 90
     end 
 
     # Remove the top of the grid
@@ -194,7 +194,6 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
 
     λF = circshift(λF, (1, 0))
     φF = circshift(φF, (1, 0))
-    λF = reverse(λF, dims = 1)
 
     Nx = size(λF, 1)
     Ny = size(λF, 2) - 1
@@ -226,7 +225,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
 
     λᶠᶠᵃ[:, Ny+1] .= λᶠᶠᵃ[:, Ny]
     φᶠᶠᵃ[:, Ny+1] .= φᶠᶠᵃ[:, Ny]
-    
+
     λᶜᶠᵃ = OffsetArray(zeros(size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
     λᶜᶜᵃ = OffsetArray(zeros(size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
 
