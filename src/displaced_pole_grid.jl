@@ -247,8 +247,6 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
 
     λᶜᶜᵃ = 0.5 .* OffsetArray(λᶜᶠᵃ.parent[:, 2:end] .+ λᶜᶠᵃ.parent[:, 1:end-1], λᶜᶠᵃ.offsets...);
 
-    Nx, Ny, _ = size(grid)
-
     # Metrics
     Δxᶜᶜᵃ = zeros(Nx, Ny  )
     Δxᶠᶜᵃ = zeros(Nx, Ny  )
@@ -332,9 +330,6 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     Azᶜᶠᵃ = CF.data[:, :, 1]; 
     Azᶠᶜᵃ = FC.data[:, :, 1]; 
     Azᶜᶜᵃ = CC.data[:, :, 1]; 
-
-    Nx, Ny, Nz = size(grid)
-    Hx, Hy, Hz = halo_size(grid)
 
     arch = arch_final
 
