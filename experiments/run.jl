@@ -28,29 +28,40 @@ using JLD2
 # ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
-resolution     = parse(Int,  get(ENV, "RESOLUTION", "3"))
-experiment     = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
-with_fluxes    = parse(Bool, get(ENV, "WITHFLUXES", "0"))
-with_restoring = parse(Bool, get(ENV, "WITHRESTORING", "0"))
-profile        = parse(Bool, get(ENV, "PROFILE", "1"))
-restart        =             get(ENV, "RESTART", "")
-Nz             = parse(Int,  get(ENV, "NZ", "100"))
+# resolution     = parse(Int,  get(ENV, "RESOLUTION", "3"))
+# experiment     = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
+# with_fluxes    = parse(Bool, get(ENV, "WITHFLUXES", "0"))
+# with_restoring = parse(Bool, get(ENV, "WITHRESTORING", "0"))
+# profile        = parse(Bool, get(ENV, "PROFILE", "1"))
+# restart        =             get(ENV, "RESTART", "")
+# Nz             = parse(Int,  get(ENV, "NZ", "100"))
 loadbalance    = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 output_dir     = get(ENV, "OUTPUTDIR", "./")
 
-final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
-final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
+# final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
+# final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
+
+
+# if rank == 0
+#     @info "Scaling test" ranks resolution max_Δt min_Δt stop_time experiment profile with_fluxes with_restoring restart 
+# end
+
+using OceanScalingTests: experiment_depth, exponential_z_faces
+
+ENV["REPEATYEAR"] = "true"
+
+final_year     = 1996
+final_month    = 12
+resolution     = 4
+experiment     = :RealisticOcean
+profile        = false
+with_fluxes    = true
+with_restoring = true
 
 max_Δt = precision(45 * 48 * 1.5 / resolution)
 min_Δt = 5 # precision(45 * 48 * 0.9 / resolution)
 stop_time = 7300days
-
-if rank == 0
-    @info "Scaling test" ranks resolution max_Δt min_Δt stop_time experiment profile with_fluxes with_restoring restart 
-end
-
-using OceanScalingTests: experiment_depth, exponential_z_faces
 
 Nz    = 60
 Depth = experiment_depth(experiment)
