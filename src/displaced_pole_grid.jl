@@ -197,14 +197,14 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     Nx = size(λF, 1)
     Ny = size(λF, 2) - 1
     
-    grid = RectilinearGrid(; size = Nz, halo = Hz, topology = (Flat, Flat, Bounded), z)
+    Zgrid = RectilinearGrid(; size = Nz, halo = Hz, topology = (Flat, Flat, Bounded), z)
     
     # z-direction from the rectilinear grid
-    zᵃᵃᶠ  = grid.zᵃᵃᶠ
-    zᵃᵃᶜ  = grid.zᵃᵃᶜ
-    Δzᵃᵃᶠ = grid.Δzᵃᵃᶠ
-    Δzᵃᵃᶜ = grid.Δzᵃᵃᶜ
-    Lz    = grid.Lz
+    zᵃᵃᶠ  = Zgrid.zᵃᵃᶠ
+    zᵃᵃᶜ  = Zgrid.zᵃᵃᶜ
+    Δzᵃᵃᶠ = Zgrid.Δzᵃᵃᶠ
+    Δzᵃᵃᶜ = Zgrid.Δzᵃᵃᶜ
+    Lz    = Zgrid.Lz
 
     grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z = (0, 1), x = (0, 1), y = (0, 1))
 
