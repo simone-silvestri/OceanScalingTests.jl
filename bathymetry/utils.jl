@@ -1,4 +1,5 @@
 using Oceananigans.Utils
+using Oceananigans.Grids: node
 using KernelAbstractions: @kernel, @index
 using FastSphericalHarmonics
 using Dierckx
@@ -56,7 +57,9 @@ function interpolate_one_level(old_array, old_grid, new_grid; interpolation_meth
     return new_array
 end
 
-function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, Nyₙ, grid; interpolation_method = LinearInterpolation())
+function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, grid; interpolation_method = LinearInterpolation())
+
+    Nxₙ, Nyₙ, _ = size(grid)
 
     # switch bathymetry to centers?
     passes = interpolation_method.passes
@@ -86,8 +89,8 @@ function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, N
     end
 
     new_grid = LatitudeLongitudeGrid(size = (Nx_all[end], Ny_all[end], 1), 
-                                     latitude  = (latitude[1], latitude[2]), 
-                                     longitude = (longitude[1], longitude[2]), 
+                                     latitude  = (-90, 90), 
+                                     longitude = (-180, 180), 
                                      z = (0, 1), 
                                      topology = (Periodic, Bounded, Bounded))
 
@@ -105,7 +108,7 @@ function interpolate_on_grid(array, new_grid, grid)
     fill_halo_regions!(data)
 
     for i in 1:Nx, j in 1:Ny
-        new_array[i, j] = interpolate(data, node(i, j, k, grid, Center(), Center(), Center())...)
+        new_array[i, j] = interpolate(data, node(i, j, 1, grid, Center(), Center(), Center())...)
     end
 
     return new_array

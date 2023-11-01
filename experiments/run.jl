@@ -50,7 +50,9 @@ if rank == 0
     @info "Scaling test" ranks resolution max_Δt min_Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
-simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
+grid = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 750, 1), south_pole_latitude = -78, halo = (2, 2, 2), Lz = 1)
+
+simulation = OceanScalingTests.scaling_test_simulation(grid, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, with_restoring, loadbalance, precision)
 
 if !isnothing(simulation)

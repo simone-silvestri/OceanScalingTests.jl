@@ -101,7 +101,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
                                      initial_size, 
                                      south_pole_latitude = -75, 
                                      halo       = (4, 4, 4), 
-                                     radius     = 1.0, 
+                                     radius     = R_Earth, 
                                      Lz         = 0.1,
                                      stretching = stretching_function,
                                      index_or_φ = :𝛗)

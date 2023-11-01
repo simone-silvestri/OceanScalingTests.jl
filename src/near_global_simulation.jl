@@ -1,4 +1,4 @@
-using Oceananigans.Grids: minimum_xspacing, minimum_yspacing
+using Oceananigans.Grids: minimum_xspacing, minimum_yspacing, AbstractGrid
 using Oceananigans.Utils 
 using Oceananigans.Units
 using Oceananigans.Architectures: device
@@ -57,8 +57,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     arch = Distributed(child_arch; partition = Partition(ranks...))
 
-    min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
-
     Lφ = latitude[2] - latitude[1]
 
     # grid size
@@ -69,6 +67,28 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     grid = load_balanced_grid(arch, precision, (Nx, Ny, Nz), latitude, z_faces, resolution, Val(loadbalance), Val(experiment))
 
+    return scaling_test_simulation(grid, Δt;
+                                   experiment, 
+                                   restart,
+                                   profile,
+                                   with_fluxes,
+                                   with_restoring,
+                                   precision,
+                                   boundary_layer_parameterization)
+end
+
+function scaling_test_simulation(grid::AbstractGrid, Δt;
+                                 experiment = :Quiescent, 
+                                 restart = "",
+                                 profile = false,
+                                 with_fluxes = true,
+                                 with_restoring = true,
+                                 precision = Float64,
+                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
+                                 )
+
+    min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
+        
     #####
     ##### Physics setup and numerical methods
     #####
