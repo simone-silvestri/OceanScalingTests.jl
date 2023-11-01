@@ -1,5 +1,7 @@
 module OceanScalingTests
 
+export WarpedLatitudeLongitudeGrid
+
 using Statistics
 using JLD2
 using Printf
@@ -23,6 +25,7 @@ using MPI
 include("bathymetry_and_forcings.jl")
 include("boundary_and_initial_conditions.jl")
 include("grid_load_balance.jl")
+include("displaced_pole_grid.jl")
 include("quasi_geostrophic_leith.jl")
 include("near_global_simulation.jl")
 include("simulation_outputs.jl")

@@ -25,11 +25,13 @@ Keyword Arguments
 - `etopo1_file`: path to jld2 datafile containing the ETOPO1 bathymetry
 ```
 """
-function interpolate_bathymetry_from_ETOPO1(resolution, latitude, longitude = (-180, 180); 
+function interpolate_bathymetry_from_ETOPO1(grid; 
                                             interpolation_method = LinearInterpolation(),
                                             minimum_depth = 6,
                                             etopo1_file = datadep"etopo1_bathymetry/bathymetry-ice-21600x10800.jld2")
 
+
+                                            
     file = jldopen(etopo1_file)
     bathy_old = Float64.(file["bathymetry"])
     
@@ -38,9 +40,8 @@ function interpolate_bathymetry_from_ETOPO1(resolution, latitude, longitude = (-
 
     # original file is reversed
 
-    Nx = Int(abs(longitude[2] - longitude[1]) * resolution)
-    Ny = Int(abs(latitude[2]  - latitude[1] ) * resolution)
-
+    Nx, Ny, _ = size(grid)
+    
     if interpolation_method isa SpectralInterpolation
         if interpolation_method.spectral_coeff isa nothing
             spectral_coeff = etopo1_to_spherical_harmonics(bathy_old, size(bathy_old, 2))
@@ -50,7 +51,7 @@ function interpolate_bathymetry_from_ETOPO1(resolution, latitude, longitude = (-
 
         bathy = bathymetry_from_etopo1(Nx, Ny, spectral_coeff, interpolation_method.filter_func)
     else 
-        bathy = interpolate_bathymetry_in_passes(bathy_old, size(bathy_old)..., Nx, Ny, latitude, longitude; interpolation_method)
+        bathy = interpolate_bathymetry_in_passes(bathy_old, size(bathy_old)..., grid; interpolation_method)
     end
 
     bathy[bathy .> - minimum_depth] .= ABOVE_SEA_LEVEL

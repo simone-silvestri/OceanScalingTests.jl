@@ -56,6 +56,61 @@ function interpolate_one_level(old_array, old_grid, new_grid; interpolation_meth
     return new_array
 end
 
+function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, Nyₙ, grid; interpolation_method = LinearInterpolation())
+
+    # switch bathymetry to centers?
+    passes = interpolation_method.passes
+    
+    ΔNx = floor((Nxₒ - Nxₙ) / passes)
+    ΔNy = floor((Nyₒ - Nyₙ) / passes)
+
+    Nx_all = [Nxₒ - ΔNx * pass for pass in 1:passes-1]
+    Ny_all = [Nyₒ - ΔNy * pass for pass in 1:passes-1]
+
+    Nx_all = Int[Nxₒ, Nx_all...]
+    Ny_all = Int[Nyₒ, Ny_all...]
+
+    array = deepcopy(old_bathymetry)
+
+    for pass = 2:passes
+        array_full = deepcopy(array)
+        nxₒ = Nx_all[pass-1]
+        nyₒ = Ny_all[pass-1]
+        nx  = Nx_all[pass]
+        ny  = Ny_all[pass]
+	    old_grid = RectilinearGrid(size = (nxₒ, nyₒ, 1), y = (-90, 90), x = (-180, 180), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
+	    new_grid = RectilinearGrid(size = (nx,  ny , 1), y = (-90, 90), x = (-180, 180), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
+    
+        @show nxₒ, nyₒ, nx, ny, pass
+        array = interpolate_one_level(array_full, old_grid, new_grid; interpolation_method)
+    end
+
+    new_grid = LatitudeLongitudeGrid(size = (Nx_all[end], Ny_all[end], 1), 
+                                     latitude  = (latitude[1], latitude[2]), 
+                                     longitude = (longitude[1], longitude[2]), 
+                                     z = (0, 1), 
+                                     topology = (Periodic, Bounded, Bounded))
+
+    array = interpolate_on_grid(array, new_grid, grid)
+
+    return array
+end
+
+function interpolate_on_grid(array, new_grid, grid)
+    Nx, Ny = size(array)
+    new_array = zeros(Nx, Ny)
+
+    data = CenterField(new_grid)
+    set!(data, array)
+    fill_halo_regions!(data)
+
+    for i in 1:Nx, j in 1:Ny
+        new_array[i, j] = interpolate(data, node(i, j, k, grid, Center(), Center(), Center())...)
+    end
+
+    return new_array
+end
+
 function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, Nyₙ, latitude, longitude; interpolation_method = LinearInterpolation())
 
     # switch bathymetry to centers?
