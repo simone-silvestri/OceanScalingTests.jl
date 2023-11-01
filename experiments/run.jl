@@ -56,7 +56,7 @@ Nz    = 60
 Depth = experiment_depth(experiment)
 z     = exponential_z_faces(Nz, Depth) 
 
-grid  = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 800, 1), south_pole_latitude = -80, halo = (7, 7, 7), z)
+grid  = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 800, Nz), south_pole_latitude = -80, halo = (7, 7, 7), z)
 bathy = jldopen("../bathymetry/bathymetrywarped4.jld2")
 
 grid  = ImmersedBoundaryGrid(grid, bathy, active_cells_map = true)
