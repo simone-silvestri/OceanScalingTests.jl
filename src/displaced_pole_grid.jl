@@ -104,6 +104,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
                                      radius     = R_Earth, 
                                      z          = (0, 1),
                                      stretching = stretching_function,
+                                     top_index  = 20, 
                                      index_or_φ = :𝛗)
 
     arch = CPU()
@@ -140,8 +141,8 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     yt = zeros(Nλ+1, Nφ+1)
 
     for j in Jeq:Nφ+1
-        fⱼ[j] =   equator_fcurve(φᵃᶠᵃ[j]) + stretching(φᵃᶠᵃ[j])
-        gⱼ[j] = - equator_fcurve(φᵃᶠᵃ[j]) + stretching(φᵃᶠᵃ[j])
+        fⱼ[j] =   equator_fcurve(φᵃᶠᵃ[j]) + stretching(φᵃᶠᵃ[j]) * 0.9
+        gⱼ[j] = - equator_fcurve(φᵃᶠᵃ[j]) + stretching(φᵃᶠᵃ[j]) * 0.9
     end
 
     fy = fⱼ
@@ -188,11 +189,12 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     end 
 
     # Remove the top of the grid
-    λF = λF[1:end-1, 1:end-10]
-    φF = φF[1:end-1, 1:end-10]
+    λF = λF[1:end-1, 1:end-top_index]
+    φF = φF[1:end-1, 1:end-top_index]
 
     λF = circshift(λF, (1, 0))
     φF = circshift(φF, (1, 0))
+    λF = reverse(λF, dims = 1)
 
     Nx = size(λF, 1)
     Ny = size(λF, 2) - 1
@@ -333,7 +335,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
 
     arch = arch_final
     Hx, Hy, Hz = halo
-    
+
     grid = OrthogonalSphericalShellGrid{Periodic, Bounded, Bounded}(arch,
             Nx, Ny, Nz,
             Hx, Hy, Hz,
