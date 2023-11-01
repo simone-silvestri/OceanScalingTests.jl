@@ -100,7 +100,7 @@ function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, grid; in
 end
 
 function interpolate_on_grid(array, new_grid, grid)
-    Nx, Ny = size(array)
+    Nx, Ny = size(grid)
     new_array = zeros(Nx, Ny)
 
     data = CenterField(new_grid)
