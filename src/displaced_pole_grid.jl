@@ -197,7 +197,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     Nx = size(λF, 1)
     Ny = size(λF, 2) - 1
     
-    grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z, x = (0, 1), y = (0, 1))
+    grid = RectilinearGrid(; size = (Nx, Ny, Nz), halo, topology = (Periodic, Bounded, Bounded), z, x = (0, 1), y = (0, 1))
 
     lF = Field((Face, Face, Center), grid)
     pF = Field((Face, Face, Center), grid)
