@@ -68,10 +68,9 @@ Depth = experiment_depth(experiment)
 z     = exponential_z_faces(Nz, Depth) 
 
 grid  = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 800, Nz), south_pole_latitude = -80, halo = (7, 7, 7), z)
-bathy = jldopen("../bathymetry/bathymetrywarped4.jld2")
+bathy = jldopen("../bathymetry/bathymetrywarped4.jld2")["bathymetry"]
 
 grid  = ImmersedBoundaryGrid(grid, bathy, active_cells_map = true)
-
 
 simulation = OceanScalingTests.scaling_test_simulation(grid, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, with_restoring, loadbalance, precision)
@@ -86,4 +85,4 @@ if !isnothing(simulation)
     @info "simulation took $(prettytime(simulation.run_wall_time))"
 end
 
-MPI.Finalize()
+# MPI.Finalize()
