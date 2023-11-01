@@ -1,13 +1,13 @@
-using Preferences
-const iscray = parse(Bool, load_preference(Base.UUID("3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"), "iscray", "false"))
-@debug "Preloading GTL library" iscray
-if iscray
-    import Libdl
-    Libdl.dlopen_e("libmpi_gtl_cuda", Libdl.RTLD_LAZY | Libdl.RTLD_GLOBAL)
-end
-
-using MPI
-MPI.Init()
+# using Preferences
+# const iscray = parse(Bool, load_preference(Base.UUID("3da0fdf6-3ccc-4f1b-acd9-58baa6c99267"), "iscray", "false"))
+# @debug "Preloading GTL library" iscray
+# if iscray
+#     import Libdl
+#     Libdl.dlopen_e("libmpi_gtl_cuda", Libdl.RTLD_LAZY | Libdl.RTLD_GLOBAL)
+# end
+# 
+# using MPI
+# MPI.Init()
 
 using OceanScalingTests
 using Oceananigans
@@ -16,16 +16,16 @@ using Oceananigans.Utils: prettytime, SpecifiedTimes
 using NVTX
 using JLD2
 
-comm   = MPI.COMM_WORLD
-rank   = MPI.Comm_rank(comm)
-Nranks = MPI.Comm_size(comm)
+# comm   = MPI.COMM_WORLD
+# rank   = MPI.Comm_rank(comm)
+# Nranks = MPI.Comm_size(comm)
 
-Ry = 1
-Rx = Nranks
+# Ry = 1
+# Rx = Nranks
 
-@show Rx, Ry
+# @show Rx, Ry
 
-ranks       = (Rx, Ry, 1)
+# ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
 resolution     = parse(Int,  get(ENV, "RESOLUTION", "3"))
