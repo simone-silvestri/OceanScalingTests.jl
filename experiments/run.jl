@@ -52,6 +52,7 @@ end
 
 using OceanScalingTests: experiment_depth, exponential_z_faces
 
+Nz    = 60
 Depth = experiment_depth(experiment)
 z     = exponential_z_faces(Nz, Depth) 
 
