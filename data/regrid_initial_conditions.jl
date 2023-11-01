@@ -4,6 +4,7 @@ using Oceananigans.Architectures: device, arch_array
 using Oceananigans.Grids: architecture
 using Oceananigans.Fields: regrid!, regrid_in_y!, regrid_in_x!
 using Oceananigans.Utils: launch!
+using OceanScalingTests
 using DataDeps
 using JLD2 
 using Statistics: dot
@@ -31,7 +32,7 @@ function exponential_z_faces(Nz, Depth; h = Nz / 4.5)
 end
 
 function regrid_initial_conditions(resolution, Nz; arch = GPU(), 
-                                   regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces(),
+                                   regrid_in_z = true, z_faces = ECCO_z_faces(),
 				                   filepath = datadep"ecco_initial_conditions/ecco-initial-conditions-19950101.jld2") 
 
     file_init = jldopen(filepath)
@@ -50,14 +51,22 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
 
     Ny = Int(150 * resolution)
 
+    Tinit = file_init["T"]
+    Sinit = file_init["S"]
+    
+    # Shift initial conditions by 90 degree
+    Δ = ceil(Int, 90 / (360 / nx))
+    Tinit = circshift(Tinit, (Δ, 0))
+    Sinit = circshift(Sinit, (Δ, 0))
+
     # the initial grid
     grid = LatitudeLongitudeGrid(arch; size = (nx, ny, nz),
                                  longitude = (-180, 180),
                                  latitude = latitude_init,
                                  z = z_faces)
 
-    T = set!(CenterField(grid), file_init["T"])
-    S = set!(CenterField(grid), file_init["S"])
+    T = set!(CenterField(grid), Tinit)
+    S = set!(CenterField(grid), Sinit)
 
     @info "extending vertically T and S"
     extend_vertically!(T)
@@ -111,6 +120,34 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
     Tᶻ¹ = CenterField(gridᶻ¹)
     Sᶻ¹ = CenterField(gridᶻ¹)
                                  
+    gridˣʸᶻ = WarpedLatitudeLongitudeGrid(GPU();   
+                                          initial_size = (1440, 800, 1),
+                                          south_pole_latitude = -80, 
+                                          halo = (2, 2, 2), 
+                                          z = (0, 1))
+
+    Tˣʸᶻ = CenterField(gridˣʸᶻ)
+    Sˣʸᶻ = CenterField(gridˣʸᶻ)                 
+                                   
+    for k in Nz:-1:1
+        @info "regridding level $(k)"
+
+        set!(Tᶻ¹, arch_array(arch, interior(Tᶻ, :, :, k:k)))
+        set!(Sᶻ¹, arch_array(arch, interior(Sᶻ, :, :, k:k)))
+
+        fill_halo_regions!((Tᶻ¹, Sᶻ¹))
+
+        horizontal_interpolate!(Tˣʸᶻ, Tᶻ¹)
+        horizontal_interpolate!(Sˣʸᶻ, Sᶻ¹)
+
+        jldsave("initial_T_at_k$(k).jld2", T = Array(interior(Tˣʸᶻ)))
+        jldsave("initial_S_at_k$(k).jld2", S = Array(interior(Sˣʸᶻ)))
+    end
+end                                       
+
+#=
+
+
     @info "Continue by regridding in X!!"
     gridˣᶻ = LatitudeLongitudeGrid(arch; size = (Nx, ny, 1),
                                    longitude = (-180, 180),
@@ -161,3 +198,4 @@ function regrid_initial_conditions(resolution, Nz; arch = GPU(),
         jldsave("initial_S_at_k$(k).jld2", S = Array(interior(Sˣʸᶻ)))
     end
 end
+=#
