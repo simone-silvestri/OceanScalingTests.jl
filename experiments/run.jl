@@ -50,7 +50,12 @@ if rank == 0
     @info "Scaling test" ranks resolution max_Δt min_Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
-grid = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 750, 1), south_pole_latitude = -78, halo = (2, 2, 2), Lz = 1)
+using OceanScalingTests: experiment_depth, exponential_z_faces
+
+Depth = experiment_depth(experiment)
+z     = exponential_z_faces(Nz, Depth) 
+
+grid = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 800, 1), south_pole_latitude = -80, halo = (7, 7, 7), z)
 
 simulation = OceanScalingTests.scaling_test_simulation(grid, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
 						       profile, with_fluxes, with_restoring, loadbalance, precision)

@@ -65,7 +65,7 @@ function read_and_interpolate_quarter_flux(name, iterations, new_grid, Nj = 1; a
     my_field = Field{location...}(new_grid)
     my_tmp2  = Field{location...}(new_grid)
 
-    interp = zeros(size(my_field)[1:2]..., 1, length(iterations))
+    interp = zeros(size(my_field)[1:2]..., length(iterations))
 
     for (idx, iter) in enumerate(iterations)
 
