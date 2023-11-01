@@ -33,7 +33,7 @@ using JLD2
 # with_fluxes    = parse(Bool, get(ENV, "WITHFLUXES", "0"))
 # with_restoring = parse(Bool, get(ENV, "WITHRESTORING", "0"))
 # profile        = parse(Bool, get(ENV, "PROFILE", "1"))
-# restart        =             get(ENV, "RESTART", "")
+restart        =             get(ENV, "RESTART", "")
 # Nz             = parse(Int,  get(ENV, "NZ", "100"))
 loadbalance    = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
@@ -77,8 +77,8 @@ grid  = ImmersedBoundaryGrid(grid, GridFittedBottom(bathy), active_cells_map = t
 
 @info "Immersed grid created"
 
-simulation = OceanScalingTests.scaling_test_simulation(grid, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
-						       profile, with_fluxes, with_restoring, loadbalance, precision)
+simulation = OceanScalingTests.scaling_test_simulation(grid, (min_Δt, max_Δt), stop_time; experiment, restart,
+						       profile, with_fluxes, with_restoring, precision)
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)
