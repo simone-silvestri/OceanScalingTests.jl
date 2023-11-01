@@ -71,7 +71,7 @@ grid  = WarpedLatitudeLongitudeGrid(GPU(); initial_size = (1440, 800, Nz), south
 
 @info "grid created"
 
-bathy = jldopen("../bathymetry/bathymetrywarped4.jld2")["bathymetry"]
+bathy = jldopen("bathymetry/bathymetrywarped4.jld2")["bathymetry"]
 
 grid  = ImmersedBoundaryGrid(grid, GridFittedBottom(bathy), active_cells_map = true)
 
