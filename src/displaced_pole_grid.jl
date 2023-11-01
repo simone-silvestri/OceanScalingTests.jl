@@ -332,7 +332,8 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     Azᶜᶜᵃ = CC.data[:, :, 1]; 
 
     arch = arch_final
-
+    Hx, Hy, Hz = halo
+    
     grid = OrthogonalSphericalShellGrid{Periodic, Bounded, Bounded}(arch,
             Nx, Ny, Nz,
             Hx, Hy, Hz,
