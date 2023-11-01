@@ -102,7 +102,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
                                      south_pole_latitude = -75, 
                                      halo       = (4, 4, 4), 
                                      radius     = R_Earth, 
-                                     Lz         = 0.1,
+                                     z          = (0, 1),
                                      stretching = stretching_function,
                                      index_or_φ = :𝛗)
 
@@ -173,10 +173,10 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
             yt[i, j] = y[i, j]
         end
     end
-
+    
     for i in 1:Nλ+1
         for j in 1:Nφ+1
-            λF[i, j] = 180 / π * atan(yt[i, j] / xt[i, j])             
+            λF[i, j] = 180 / π * (atan(yt[i, j] / xt[i, j]))              
             φF[i, j] = 90 - 360 / π * atan(sqrt(yt[i, j]^2 + xt[i, j]^2)) 
         end
     end
@@ -191,9 +191,13 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     λF = λF[1:end-1, 1:end-10]
     φF = φF[1:end-1, 1:end-10]
 
+    λF = circshift(λF, (1, 0))
+    φF = circshift(φF, (1, 0))
+
     Nx = size(λF, 1)
     Ny = size(λF, 2) - 1
-    grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z = (0, Lz), x = (0, 1), y = (0, 1))
+    
+    grid = RectilinearGrid(; size = (Nx, Ny, 1), halo, topology = (Periodic, Bounded, Bounded), z, x = (0, 1), y = (0, 1))
 
     lF = Field((Face, Face, Center), grid)
     pF = Field((Face, Face, Center), grid)
@@ -211,7 +215,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
 
     λᶠᶠᵃ[:, Ny+1] .= λᶠᶠᵃ[:, Ny]
     φᶠᶠᵃ[:, Ny+1] .= φᶠᶠᵃ[:, Ny]
-
+    
     λᶜᶠᵃ = OffsetArray(zeros(size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
     λᶜᶜᵃ = OffsetArray(zeros(size(λᶠᶠᵃ)), λᶠᶠᵃ.offsets...)
 
@@ -239,6 +243,7 @@ function WarpedLatitudeLongitudeGrid(arch_final = CPU();
     zᵃᵃᶜ  = grid.zᵃᵃᶜ
     Δzᵃᵃᶠ = grid.Δzᵃᵃᶠ
     Δzᵃᵃᶜ = grid.Δzᵃᵃᶜ
+    Lz    = grid.Lz
 
     Nx, Ny, Nz = size(grid)
 

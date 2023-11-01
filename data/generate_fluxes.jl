@@ -38,21 +38,12 @@ end
 
 jldsave("list_of_days.jld2", list_fluxes = it_collection, list_restoring = it_collection_restoring)
 
-function transpose_flux!(var, tmp)
-    nx = size(tmp, 1)
-    tmp .= var[nx+1:end, :, :]
-    var[nx+1:end, :, :] .= var[1:nx, :, :]
-    var[1:nx, :, :]   .= tmp
-end
-
 YField = Field{<:Center, <:Face, <:Center}
 set_field!(f::Field, a) = set!(f, a)
 
 function set_field!(f::YField, a)
     d = zeros(size(f)...)
     d[:, 1:end-1] .= a
-
-    transpose_flux!(d, similar(d))
 
     set!(f, d)
 
@@ -88,7 +79,14 @@ function read_and_interpolate_quarter_flux(name, iterations, new_grid, Nj = 1; a
 
         @info "interpolating file $file"
 
-        set_field!(cs_field, ncread(file, name)[:, :, 1])
+        data = ncread(file, name)[:, :, 1]
+        data = circshift(data, (size(data, 1), 0)) # go back to usual coordinates
+
+        # Shift fluxes by 90 degree
+        Δ = ceil(Int, 90 / (360 / size(data, 1)))
+        data = circshift(data, (Δ, 0))
+
+        set_field!(cs_field, data)
         fix_max_val!(cs_field, max_val)
         fill_halo_regions!(cs_field)
 

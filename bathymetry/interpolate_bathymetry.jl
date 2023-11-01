@@ -38,8 +38,11 @@ function interpolate_bathymetry_from_ETOPO1(grid;
     # apparently bathymetry is reversed in the latitude direction, therefore we have to swap it
     bathy_old = reverse(bathy_old, dims = 2)
 
-    # original file is reversed
+    # Shift bathymetry by 90 degree
+    Δ = ceil(Int, 90 / (360 / size(bathy_old, 1)))
+    bathy_old = circshift(bathy_old, (Δ, 0))
 
+    # original file is reversed
     Nx, Ny, _ = size(grid)
     
     if interpolation_method isa SpectralInterpolation
