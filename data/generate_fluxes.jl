@@ -80,7 +80,7 @@ function read_and_interpolate_quarter_flux(name, iterations, new_grid, Nj = 1; a
         @info "interpolating file $file"
 
         data = ncread(file, name)[:, :, 1]
-        data = circshift(data, (size(data, 1), 0)) # go back to usual coordinates
+        data = circshift(data, (size(data, 1) ÷ 2, 0)) # go back to usual coordinates
 
         # Shift fluxes by 90 degree
         Δ = ceil(Int, 90 / (360 / size(data, 1)))
