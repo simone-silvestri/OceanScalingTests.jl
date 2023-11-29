@@ -7,11 +7,11 @@ using NVTX
 using Oceananigans
 using Oceananigans.Units
 
-using Oceananigans.Distributed
+using Oceananigans.DistributedComputations
 using Oceananigans.Fields: interpolate, Field
 using Oceananigans.Architectures: arch_array
 using Oceananigans.Coriolis: HydrostaticSphericalCoriolis
-using Oceananigans.Coriolis: ActiveCellEnstrophyConservingScheme
+using Oceananigans.Coriolis: ActiveCellEnstrophyConserving
 using Oceananigans.ImmersedBoundaries: PartialCellBottom
 using Oceananigans.BoundaryConditions
 using CUDA: @allowscalar

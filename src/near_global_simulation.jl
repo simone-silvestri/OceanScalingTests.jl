@@ -25,15 +25,11 @@ equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfStat
 
 experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
 
-using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConservingScheme
-
-previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
-                                                                vertical_scheme = WENO(grid),
-                                                             ke_gradient_scheme = EnergyConservingScheme(precision),
-                                                                      upwinding = CrossAndSelfUpwinding()) 
+using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConserving
 
 best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
-                                                            vertical_scheme = WENO(grid))
+							    vertical_scheme = Centered(),
+							  divergence_scheme = WENO(precision))
 
 simple_momentum_advection(grid, precision) = VectorInvariant()
 
@@ -54,7 +50,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  )
 
     topo = (Periodic, Bounded, Bounded)
-    arch = DistributedArch(child_arch; topology = topo, ranks)
+    arch = Distributed(child_arch; topology = topo, partition = Partition(ranks...))
 
     min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
 
