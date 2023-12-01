@@ -2,7 +2,7 @@ using Oceananigans.Units
 using Oceananigans.Utils
 using Oceananigans.Grids: halo_size
 using Oceananigans.Architectures: arch_array, architecture
-using Oceananigans.Distributed: partition_global_array
+using Oceananigans.DistributedComputations: partition_global_array
 
 initialize_model!(model, ::Val{:Quiescent}; kw...)   = nothing
 
