@@ -143,8 +143,9 @@ function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, N
             oldlat = latitude
             oldlon = longitude
         end
-	old_grid = RectilinearGrid(size = (nxₒ, nyₒ, 1), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
-	new_grid = RectilinearGrid(size = (nx,  ny , 1), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
+	    
+        old_grid = RectilinearGrid(size = (nxₒ, nyₒ, 1), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
+	    new_grid = RectilinearGrid(size = (nx,  ny , 1), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
     
         @show nxₒ, nyₒ, nx, ny, pass
         array = interpolate_one_level(array_full, old_grid, new_grid; interpolation_method)
