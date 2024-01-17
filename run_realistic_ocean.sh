@@ -7,13 +7,13 @@
 # ====================================================== #
 
 # Grid size
-export RESOLUTION=12
+export RESOLUTION=0.5
 export NZ=100
 
 # Experiment details
 export EXPERIMENT="RealisticOcean"
-export WITHFLUXES=1
-export WITHRESTORING=1
+export WITHFLUXES=0
+export WITHRESTORING=0
 export PRECISION="Float64"
 
 # Might increase performance when using a lot of cores (i.e. improves scalability)
@@ -23,7 +23,7 @@ export LOADBALANCE=1
 export PROFILE=0
 
 # How many nodes are we running on?
-export NNODES=2
+export NCORES=4
 
 # For :RealisticOcean the simulation always starts from 01/01/1995, when does it end?
 export FINALYEAR=1996
@@ -40,8 +40,12 @@ export REGENERATEFLUXES=0
 export REGENERATEINITIALCONDITIONS=0
 export REGENERATERESTORING=0
 
+export JULIA=julia
+
+export USEGPU=false
+
 # Server specific enviromental variables and modules
-source satori/setup_satori.sh
+# source satori/setup_satori.sh
 
 # ====================================================== #
 # ================ PREPARATORY ACTIONS ================= #
@@ -58,8 +62,8 @@ BATHYMETRY="bathymetry$RESOLUTION.jld2"
 cat > generate_bathymetry.jl << EoF_s
 include("GenerateBathymetry.jl")
 using .GenerateBathymetry
-res = parse(Int, get(ENV, "RESOLUTION", "3"))
-bat = interpolate_bathymetry_from_ETOPO1(res, 75; interpolation_method = LinearInterpolation(passes = 5))
+res = parse(Float64, get(ENV, "RESOLUTION", "3"))
+bat = interpolate_bathymetry_from_ETOPO1(res, (-75, 75); interpolation_method = LinearInterpolation(passes = 5))
 write_bathymetry_to_file(res, bat)
 EoF_s
 
@@ -82,8 +86,8 @@ cd ../data
 # check we want to regenerate fluxes otherwise proceed
 cat > write_fluxes.jl << EoF_s
 include("generate_fluxes.jl")
-res = parse(Int, get(ENV, "RESOLUTION", "3"))
-generate_fluxes(res; arch = GPU())
+res = parse(Float64, get(ENV, "RESOLUTION", "3"))
+generate_fluxes(res; arch = CPU())
 EoF_s
 
 if test $REGENERATEFLUXES == 0 ; then
@@ -101,8 +105,8 @@ rm write_fluxes.jl
 # check we want to regenerate fluxes otherwise proceed
 cat > write_restoring.jl << EoF_s
 include("generate_fluxes.jl")
-res = parse(Int, get(ENV, "RESOLUTION", "3"))
-generate_restoring(res; arch=GPU())
+res = parse(Float64, get(ENV, "RESOLUTION", "3"))
+generate_restoring(res; arch=CPU())
 EoF_s
 
 if test $REGENERATERESTORING == 0 ; then
@@ -120,9 +124,9 @@ rm write_restoring.jl
 # check we want to regrid initial conditions otherwise proceed
 cat > generate_initial_conditions.jl << EoF_s
 include("regrid_initial_conditions.jl")
-res = parse(Int, get(ENV, "RESOLUTION", "3"))
+res = parse(Float64, get(ENV, "RESOLUTION", "3"))
 Nz  = parse(Int, get(ENV, "NZ", "100"))
-regrid_initial_conditions(res, Nz; arch = GPU())
+regrid_initial_conditions(res, Nz; arch = CPU())
 EoF_s
 
 if test $REGENERATEINITIALCONDITIONS == 0 ; then
@@ -146,4 +150,4 @@ rm generate_initial_conditions.jl
 #####
 
 cd ../
-sbatch -N ${NNODES} satori_job.sh
+mpiexec -n ${NCORES} julia --project --check-bounds=no experiments/run.jl

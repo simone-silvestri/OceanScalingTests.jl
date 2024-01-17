@@ -1,6 +1,7 @@
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.ImmersedBoundaries: immersed_cell
+using Oceananigans.DistributedComputations: Sizes
 
 """
     function load_balanced_grid(arch, precision, N, latitude, z_faces, 

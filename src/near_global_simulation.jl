@@ -40,17 +40,19 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  latitude = (-75, 75),
                                  restart = "",
                                  z_faces_function = exponential_z_faces,
+                                 κ_skew = 0,
+                                 κ_symmetric = 0,
                                  Nz = 100,
                                  profile = false,
                                  with_fluxes = true,
                                  with_restoring = true,
                                  loadbalance = true,
+                                 slope_limiter = FluxTapering(1e-2),
                                  precision = Float64,
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
                                  )
 
-    topo = (Periodic, Bounded, Bounded)
-    arch = Distributed(child_arch; topology = topo, partition = Partition(ranks...))
+    arch = Distributed(child_arch; partition = Partition(ranks...))
 
     min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
 
@@ -73,6 +75,14 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
+    horizontal_closure = if κ_skew > 0 || κ_symmetric > 0
+        IsopycnalSkewSymmetricDiffusivity(; κ_skew, κ_symmetric, slope_limiter)
+    else
+        nothing
+    end
+
+    closure  = (vertical_diffusivity, boundary_layer_parameterization, horizontal_closure)
+
     tracer_advection   = Oceananigans.Advection.ThreeDimensionalTracerAdvection(;
                                 x = WENO(precision; order = 7),
                                 y = WENO(precision; order = 7),
@@ -85,7 +95,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     @info "running with $(substeps(free_surface)) barotropic substeps"
 
     buoyancy = SeawaterBuoyancy(precision; equation_of_state=equation_of_state(Val(experiment), precision))
-    closure  = (vertical_diffusivity, boundary_layer_parameterization)
     
     coriolis = HydrostaticSphericalCoriolis(precision)
 

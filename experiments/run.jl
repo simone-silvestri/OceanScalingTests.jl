@@ -27,7 +27,7 @@ Rx = Nranks
 ranks       = (Rx, Ry, 1)
 
 # Enviromental variables
-resolution     = parse(Int,  get(ENV, "RESOLUTION", "3"))
+resolution     = parse(Float64,  get(ENV, "RESOLUTION", "3"))
 experiment     = Symbol(     get(ENV, "EXPERIMENT", "DoubleDrake"))
 with_fluxes    = parse(Bool, get(ENV, "WITHFLUXES", "0"))
 with_restoring = parse(Bool, get(ENV, "WITHRESTORING", "0"))
@@ -37,20 +37,26 @@ Nz             = parse(Int,  get(ENV, "NZ", "100"))
 loadbalance    = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 output_dir     = get(ENV, "OUTPUTDIR", "./")
-
+gpu_arch    = parse(Bool, get(ENV, "USEGPU", "true"))
 final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
 
-max_Δt = precision(45 * 48 * 1.5 / resolution)
-min_Δt = 5 # precision(45 * 48 * 0.9 / resolution)
+max_Δt = precision(3600)
+min_Δt = precision(5) # precision(45 * 48 * 0.9 / resolution)
 stop_time = 7300days
+
+child_arch = if gpu_arch
+    GPU()
+else
+    CPU()
+end
 
 if rank == 0
     @info "Scaling test" ranks resolution max_Δt min_Δt stop_time experiment profile with_fluxes with_restoring restart 
 end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
-						       profile, with_fluxes, with_restoring, loadbalance, precision)
+						       profile, with_fluxes, child_arch, with_restoring, loadbalance, precision)
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)
