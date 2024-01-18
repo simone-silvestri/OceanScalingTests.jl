@@ -77,7 +77,7 @@ function set_boundary_conditions(::Val{:DoubleDrake}, grid; kw...)
     u_bcs = FieldBoundaryConditions(bottom=u_bot_bc, top=u_top_bc)
     v_bcs = FieldBoundaryConditions(bottom=v_bot_bc)
 
-    return (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
+    return NamedTuple() # (u = u_bcs, v = v_bcs, T = T_bcs, S = S_bcs)
 end
 
 function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = true, with_restoring = true)

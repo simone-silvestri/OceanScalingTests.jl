@@ -3,6 +3,7 @@ using Oceananigans.Utils
 using Oceananigans.Units
 using Oceananigans.Architectures: device
 using Oceananigans.TurbulenceClosures
+using Oceananigans.TurbulenceClosures: ConvectiveAdjustmentVerticalDiffusivity
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
 using JLD2
@@ -46,11 +47,14 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  with_restoring = true,
                                  loadbalance = true,
                                  precision = Float64,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
+                                 boundary_layer_parameterization = ConvectiveAdjustmentVerticalDiffusivity(convective_κz = 0.2)
+                                 #RiBasedVerticalDiffusivity(precision)
                                  )
 
+    @info "creating the simulation"
+
     topo = (Periodic, Bounded, Bounded)
-    arch = Distributed(child_arch; topology = topo, partition = Partition(ranks...))
+    arch = Distributed(child_arch; partition = Partition(ranks...))
 
     min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
 
@@ -73,7 +77,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
-    tracer_advection   = Oceananigans.Advection.ThreeDimensionalTracerAdvection(;
+    tracer_advection   = Oceananigans.Advection.TracerAdvection(;
                                 x = WENO(precision; order = 7),
                                 y = WENO(precision; order = 7),
                                 z = Centered(precision))
