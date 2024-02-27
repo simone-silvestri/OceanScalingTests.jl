@@ -170,18 +170,24 @@ end
 
 @inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ)
     @inbounds begin
+        i′ = ifelse(i == 0, 1, i)
+        j′ = ifelse(j == 0, 1, j)
+
+        i′ = ifelse(i == grid.Nx+1, grid.Nx, i)
+        j′ = ifelse(j == grid.Ny+1, grid.Ny, j)
+
         surf_val = field[i, j, grid.Nz]
         
         time_in_days = clock.time / 1days
         n  = mod(time_in_days, 5) + 1
         n₁ = Int(floor(n))
         n₂ = Int(n₁ + 1)    
-        flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
+        flux = F[i′, j′, n₁] * (n₂ - n) + F[i′, j′, n₂] * (n - n₁)
 
         n  = mod(time_in_days, 15) ÷ 3 + 1
         n₁ = Int(floor(n))
         n₂ = Int(n₁ + 1)    
-        restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
+        restoring_val = R[i′, j′, n₁] * (n₂ - n) + R[i′, j′, n₂] * (n - n₁)
 
         restoring = λ * (surf_val - restoring_val)
     end
