@@ -49,8 +49,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
                                  )
 
-    topo = (Periodic, Bounded, Bounded)
-    arch = Distributed(child_arch; topology = topo, partition = Partition(ranks...))
+    arch = Distributed(child_arch; partition = Partition(ranks...))
 
     min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
 
@@ -73,7 +72,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
-    tracer_advection   = Oceananigans.Advection.ThreeDimensionalTracerAdvection(;
+    tracer_advection   = Oceananigans.Advection.TracerAdvection(;
                                 x = WENO(precision; order = 7),
                                 y = WENO(precision; order = 7),
                                 z = Centered(precision))

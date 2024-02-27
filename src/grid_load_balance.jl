@@ -28,7 +28,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
     return experiment == :RealisticOcean ? 
     	   ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution)), active_cells_map = true) :
            experiment == :DoubleDrake ?
-           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
+           ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry), active_cells_map = true) :
            underlying_grid
 end
 
