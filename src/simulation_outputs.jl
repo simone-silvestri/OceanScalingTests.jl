@@ -6,7 +6,11 @@ using Oceananigans.Models.HydrostaticFreeSurfaceModels: VerticalVorticityField
 
 import Oceananigans.OutputWriters: set!, set_time_stepper_tendencies!
 
-function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, surface_time = 1days, checkpoint_time = 5days, output_dir = "./") where Experiment
+function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, 
+		      surface_time = 1days, 
+		      checkpoint_time = 5days, 
+		      average_time = 30days, 
+		      output_dir = "./") where Experiment
 
     model   = simulation.model
 
@@ -29,6 +33,13 @@ function set_outputs!(simulation, ::Val{Experiment}; overwrite_existing = true, 
                                                            filename = "$(Experiment)_fields_$rank",
                                                            with_halos = true,
                                                            overwrite_existing)
+
+##    simulation.output_writers[:averages] = JLD2OutputWriter(model, merge(model.velocities, model.tracers);
+##                                                           dir = output_dir, 
+##                                                           schedule = AveragedTimeInterval(average_time; stride = 20),
+##                                                           filename = "$(Experiment)_average_$rank",
+##                                                           with_halos = true,
+##                                                           overwrite_existing)
 
     simulation.output_writers[:checkpointer] = Checkpointer(model;
                                                             dir = output_dir, 

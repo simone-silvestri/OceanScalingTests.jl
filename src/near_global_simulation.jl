@@ -2,8 +2,9 @@ using Oceananigans.Grids: minimum_xspacing, minimum_yspacing
 using Oceananigans.Utils 
 using Oceananigans.Units
 using Oceananigans.Architectures: device
+using Oceananigans.DistributedComputations: Partition
 using Oceananigans.TurbulenceClosures
-using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
+using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity, MixingLength, TurbulentKineticEnergyEquation
 using SeawaterPolynomials: TEOS10EquationOfState
 using JLD2
 
@@ -25,17 +26,49 @@ equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfStat
 
 experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
 
-using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConservingScheme
+using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConserving
 
 previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
                                                                 vertical_scheme = WENO(grid),
-                                                             ke_gradient_scheme = EnergyConservingScheme(precision),
+                                                             ke_gradient_scheme = EnergyConserving(precision),
                                                                       upwinding = CrossAndSelfUpwinding()) 
 
 best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
-                                                            vertical_scheme = WENO(grid))
+                                                            vertical_scheme = Centered(),
+							  divergence_scheme = WENO())
 
 simple_momentum_advection(grid, precision) = VectorInvariant()
+
+function CATKE(precision)
+    optimal_parameters = (; Cʰⁱc = 0.2731468093861212, 
+			    Cʰⁱu = 0.48940395945337184, 
+			    Cʰⁱe = 1.907914021880822, 
+			    Cˢ   = 0.7463090622457234, 
+			    Cˡᵒc = 0.9145347131328765, 
+			    Cˡᵒu = 0.6614133630934198, 
+			    Cˡᵒe = 1.6354454469815143, 
+			    CRi⁰ = 0.1505820526073216, 
+			    CRiᵟ = 0.11254059100166877, 
+			    Cᶜc  = 0.738011796712781, 
+			    Cᶜe  = 0.3095252902582713, 
+			    Cᵉc  = 0.39241438741128565, 
+			    Cˢᵖ  = 0.5174999989108298,
+			    Cᵇ   = 0.01)
+    mixing_length = MixingLength(; optimal_parameters...)
+
+    turbulent_kinetic_energy_equation = TurbulentKineticEnergyEquation(; Cᵂϵ  = 1.0,
+								         CᵂwΔ = 1.1543691654166033, 
+								         Cᵂu★ = 0.3819412678724517,
+			                                                 CʰⁱD = 0.9379274563757914, 
+			    						 CˡᵒD = 0.3780821622023711, 
+									 CᶜD  = 1.4283014563458707) 
+
+    maximum_tracer_diffusivity = 4.0
+    maximum_tke_diffusivity = 4.0
+    maximum_viscosity = 4.0
+    negative_turbulent_kinetic_energy_damping_time_scale = 30
+    return CATKEVerticalDiffusivity(precision; mixing_length, negative_turbulent_kinetic_energy_damping_time_scale, turbulent_kinetic_energy_equation)
+end
 
 function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  child_arch = GPU(),
@@ -50,11 +83,11 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
                                  with_restoring = true,
                                  loadbalance = true,
                                  precision = Float64,
-                                 boundary_layer_parameterization = RiBasedVerticalDiffusivity(precision)
+				 boundary_layer_parameterization = RiBasedVerticalDiffusivity() 
                                  )
 
     topo = (Periodic, Bounded, Bounded)
-    arch = DistributedArch(child_arch; topology = topo, ranks)
+    arch = Distributed(child_arch; partition = Partition(ranks...))
 
     min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
 
@@ -72,12 +105,19 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Physics setup and numerical methods
     #####
 
-    νz = 5e-4
-    κz = 3e-5        
+    νz = 1e-4
+    κz = 1e-5        
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
-    tracer_advection   = WENO(grid; order = 7)
+    tracer_advection = Oceananigans.Advection.TracerAdvection(
+				x = WENO(precision; order = 7),
+				y = WENO(precision; order = 7),
+				z = Centered(precision))
+
+    tracer_advection = boundary_layer_parameterization isa CATKEVerticalDiffusivity ?
+    		       (; T = tracer_advection, S = tracer_advection, e = nothing) : tracer_advection
+
     momentum_advection = best_momentum_advection(grid, precision)
 
     free_surface = SplitExplicitFreeSurface(precision; substeps = barotropic_substeps(max_Δt, grid))
@@ -148,10 +188,10 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 
         rk = sim.model.grid.architecture.local_rank
 
-	    @info @sprintf("R: %02d, T: % 12s, it: %d, Δt: %.2f, vels: %.2e %.2e %.2e, η: %.2e, trac: %.2e %.2e, wt : %s", 
+	    @info @sprintf("R: %02d, T: % 12s, it: %d, Δt: %.2f, vels: %.2e %.2e %.2e, trac: %.2e %.2e, wt : %s", 
                         rk, prettytime(sim.model.clock.time), sim.model.clock.iteration, sim.Δt, 
-                        maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η), maximum(abs, T), maximum(abs, S),
-                        prettytime(wall_time))
+                        maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, T), maximum(abs, S),
+			prettytime(wall_time))
 
         start_time[1] = time_ns()
 
@@ -163,7 +203,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
     
     if experiment == :RealisticOcean 
-        if with_fluxes 
+        if with_fluxes
             simulation.callbacks[:update_fluxes] = Callback(update_fluxes!, TimeInterval(5days))
         end
         if with_restoring 

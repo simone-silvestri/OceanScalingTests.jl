@@ -1,6 +1,6 @@
 using Oceananigans.Grids: φnode
-using Oceananigans.Distributed
-using Oceananigans.Distributed: DistributedGrid, partition_global_array
+using Oceananigans.DistributedComputations
+using Oceananigans.DistributedComputations: DistributedGrid, partition_global_array
 using Oceananigans.Operators
 using DataDeps
 
@@ -142,19 +142,19 @@ end
 @inline v_linear_bottom_drag(i, j, grid, c, Φ, μ) = @inbounds - μ * Φ.v[i, j, 1]
 
 @inline function surface_stress_x(i, j, grid, clock, fields, p)
-    φ = φnode(j, grid, Center())
+    φ = φnode(j, grid.underlying_grid, Center())
     return wind_stress(φ, p)
 end
 
 @inline function surface_salinity_flux(i, j, grid, clock, fields, p)
-    φ = φnode(j, grid, Center())
+    φ = φnode(j, grid.underlying_grid, Center())
     return salinity_flux(φ, p)
 end
 
 @inline T_reference(φ) = max(0.0, 30.0 * cos(1.2 * π * φ / 180))
 
 @inline function T_relaxation(i, j, grid, clock, fields, λ)
-    φ = φnode(j, grid, Center())
+    φ = φnode(j, grid.underlying_grid, Center())
     return @inbounds λ * (fields.T[i, j, grid.Nz] - T_reference(φ))
 end
 
@@ -170,18 +170,24 @@ end
 
 @inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ)
     @inbounds begin
+        i′ = ifelse(i < 1, 1, i)
+        j′ = ifelse(j < 1, 1, j)
+
+        i′ = ifelse(i′ > grid.Nx, grid.Nx, i′)
+        j′ = ifelse(j′ > grid.Ny, grid.Ny, j′)
+
         surf_val = field[i, j, grid.Nz]
         
         time_in_days = clock.time / 1days
         n  = mod(time_in_days, 5) + 1
         n₁ = Int(floor(n))
         n₂ = Int(n₁ + 1)    
-        flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
+        flux = F[i′, j′, n₁] * (n₂ - n) + F[i′, j′, n₂] * (n - n₁)
 
         n  = mod(time_in_days, 15) ÷ 3 + 1
         n₁ = Int(floor(n))
         n₂ = Int(n₁ + 1)    
-        restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
+        restoring_val = R[i′, j′, n₁] * (n₂ - n) + R[i′, j′, n₂] * (n - n₁)
 
         restoring = λ * (surf_val - restoring_val)
     end

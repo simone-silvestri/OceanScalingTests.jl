@@ -2,7 +2,7 @@ using Oceananigans.Units
 using Oceananigans.Utils
 using Oceananigans.Grids: halo_size
 using Oceananigans.Architectures: arch_array, architecture
-using Oceananigans.Distributed: partition_global_array
+using Oceananigans.DistributedComputations: partition_global_array
 
 initialize_model!(model, ::Val{:Quiescent}; kw...)   = nothing
 
@@ -31,13 +31,15 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
 
     rx = grid.architecture.local_rank
 
+    sz = (size(grid, 1), size(grid, 2), 1)
+
     for k in 1:size(grid, 3)
        if rx == 1
           @info "loading level $k"
        end
 
-       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_T_at_k$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
-       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_S_at_k$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
+       T_init[:, :, k:k] .= Array(partition_global_array(arch, jldopen("data/initial_T_at_k$(k).jld2")["T"][:, :, 1:1], sz))
+       S_init[:, :, k:k] .= Array(partition_global_array(arch, jldopen("data/initial_S_at_k$(k).jld2")["S"][:, :, 1:1], sz))
     end
 
     set!(model, T = T_init, S = S_init)
@@ -68,7 +70,7 @@ function set_boundary_conditions(::Val{:DoubleDrake}, grid; kw...)
     S_top_bc = FluxBoundaryCondition(surface_salinity_flux, discrete_form=true, parameters=S_coeffs)
     T_top_bc = FluxBoundaryCondition(T_relaxation,          discrete_form=true, parameters=λ)
 
-    μ = eltype(grid)(0.003) # linear drag coefficient (ms⁻¹)
+    μ = eltype(grid)(0.002) # linear drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_linear_bottom_drag, discrete_form=true, parameters=μ)
     v_bot_bc = FluxBoundaryCondition(v_linear_bottom_drag, discrete_form=true, parameters=μ)
 
@@ -105,8 +107,8 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
             Δz = minimum_zspacing(grid)
 
             # If temperature or salinity are outside the physical range, crank up restoring velocity
-            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=Δz/30days))
-            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=Δz/60days))
+            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=Δz/8days))
+            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=Δz/40days))
         else
             T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
             S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
@@ -118,7 +120,7 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
         S_top_bc = FluxBoundaryCondition(zero(grid))
     end
 
-    μ = eltype(grid)(0.001) # Quadratic drag coefficient (ms⁻¹)
+    μ = eltype(grid)(0.004) # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=μ)
 

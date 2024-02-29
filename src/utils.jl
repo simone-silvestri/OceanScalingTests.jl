@@ -15,6 +15,8 @@ leap_year_days(year) = year == 1996 ||
 
 monthly_days(year) = [1:31, leap_year_days(year), 1:31, 1:30, 1:31, 1:30, 1:31, 1:31, 1:30, 1:31, 1:30, 1:31]
 
+total_days = [sum([monthly_days(1995)[i][end] for i in 1:j]) for j in 1:12]
+
 function realistic_ocean_stop_time(final_year, final_month = 12)
     simulation_days = 0
     # Starts from 01/01/1995
@@ -46,7 +48,7 @@ function check_ranges(folder, ranks; H = 7, fields = false, time = 0, iteration 
 end
 
 function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5, 
-                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], H = 7)
+                               bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], H = 7, with_e = true)
 
     Nx, Ny, Nz = full_size
 
@@ -66,8 +68,10 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
 
     iranges = check_ranges(folder, ranks; H, iteration)
 
+    vars = with_e ? (:u, :w, :v, :T, :S, :e) : (:u, :w, :v, :T, :S)
+
     @info "starting the compression"
-    for var in (:u, :w, :v, :T, :S)
+    for var in vars
         GC.gc()
 
         @info "compressing variable $var"

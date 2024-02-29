@@ -1,6 +1,7 @@
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.ImmersedBoundaries: immersed_cell
+using Oceananigans.DistributedComputations: Sizes
 
 """
     function load_balanced_grid(arch, precision, N, latitude, z_faces, 
@@ -28,7 +29,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                 z = z_faces)
 
     return experiment == :RealisticOcean ? 
-    	   ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution)), true) :
+    	   ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution)), active_cells_map = true) :
            experiment == :DoubleDrake ?
            ImmersedBoundaryGrid(underlying_grid, GridFittedBottom(double_drake_bathymetry)) :
            underlying_grid
@@ -37,9 +38,7 @@ end
 function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution, 
                             ::Val{true}, ::Val{:RealisticOcean}; Bottom = GridFittedBottom) 
 
-    child_arch = child_architecture(arch)
-    
-    underlying_grid = LatitudeLongitudeGrid(child_arch, precision;
+    underlying_grid = LatitudeLongitudeGrid(CPU(), precision;
                         size = N,
                         longitude = (-180, 180),
                         latitude = latitude,
@@ -48,27 +47,23 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
 
     ibg = ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution))) 
 
-    load_per_x_slab = arch_array(child_arch, zeros(Int, N[1]))
-    # load_per_y_slab = arch_array(child_arch, zeros(Int, N[2]))
+    load_per_x_slab = zeros(Int, N[1])
 
-    loop! = assess_x_load(device(child_arch), 512, N[1])
+    loop! = assess_x_load(device(CPU()), 512, N[1])
     loop!(load_per_x_slab, ibg)
-    # loop! = assess_y_load(device(child_arch), 512, N[2])
-    # loop!(load_per_y_slab, ibg)
+    local_Nx = calculate_local_N(load_per_x_slab, N[1], arch.ranks[1])
 
-    load_per_x_slab = arch_array(CPU(), load_per_x_slab)
-    # load_per_y_slab = arch_array(CPU(), load_per_y_slab)
-    local_Nx        = calculate_local_N(load_per_x_slab, N[1], arch.ranks[1])
-    # local_Ny        = calculate_local_N(load_per_y_slab, N[2], arch.ranks[2])
+    @show local_Nx
 
     # We cannot have Nx > 650 if Nranks = 32 otherwise we incur in memory limitations,
     # so for a small number of GPUs we are limited in the load balancing
-    redistribute_size_to_fulfill_memory_limitation!(local_Nx, 1150)
+    redistribute_size_to_fulfill_memory_limitation!(local_Nx, 600)
+    child_arch = child_architecture(arch)
 
     zonal_rank = arch.local_index[1]
-    N = (local_Nx[zonal_rank], N[2] ÷ arch.ranks[2], N[3])
+    arch = Distributed(child_arch; partition = Partition(x = Sizes(local_Nx...)))
 
-    @info "slab decomposition with " zonal_rank N
+    @info "slab decomposition with " zonal_rank N arch
 
     @show underlying_grid = LatitudeLongitudeGrid(arch, precision;
                                                   size = N,
@@ -77,7 +72,11 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                                                   halo = (7, 7, 7),
                                                   z = z_faces)
 
-    return ImmersedBoundaryGrid(underlying_grid, Bottom(realistic_bathymetry(underlying_grid, resolution)), true) 
+    bottom_height = realistic_bathymetry(underlying_grid, resolution)
+
+    @show size(underlying_grid), size(bottom_height), zonal_rank
+
+    return ImmersedBoundaryGrid(underlying_grid, Bottom(bottom_height), active_cells_map = true) 
 end
 
 @kernel function assess_x_load(load_per_slab, ibg)

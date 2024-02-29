@@ -9,8 +9,10 @@ using MPI
 MPI.Init()
 
 using OceanScalingTests
+using OceanScalingTests: load_restoring!
 using Oceananigans
 using Oceananigans.Units
+using Oceananigans.Grids: architecture
 using Oceananigans.Utils: prettytime, SpecifiedTimes
 using NVTX
 using JLD2
@@ -41,7 +43,7 @@ output_dir     = get(ENV, "OUTPUTDIR", "./")
 final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
 
-max_Δt = precision(45 * 48 * 1.5 / resolution)
+max_Δt = precision(45 * 48 * 0.5 / resolution)
 min_Δt = 5 # precision(45 * 48 * 0.9 / resolution)
 stop_time = 7300days
 
@@ -50,13 +52,14 @@ if rank == 0
 end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
-						       profile, with_fluxes, with_restoring, loadbalance, precision)
+						       profile, with_fluxes, with_restoring, loadbalance, precision, child_arch = GPU())
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)
-    OceanScalingTests.set_outputs!(simulation, Val(experiment); output_dir, overwrite_existing = false, checkpoint_time = 10days)
+    OceanScalingTests.set_outputs!(simulation, Val(experiment); output_dir, overwrite_existing = true, checkpoint_time = 10days)
 
     pickup_file = isempty(restart) ? false :  output_dir * "RealisticOcean_checkpoint_$(rank)_iteration$(restart).jld2"
+    
     run!(simulation, pickup = pickup_file)
 
     @info "simulation took $(prettytime(simulation.run_wall_time))"
