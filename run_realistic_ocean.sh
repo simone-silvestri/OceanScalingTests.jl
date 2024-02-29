@@ -146,4 +146,5 @@ rm generate_initial_conditions.jl
 #####
 
 cd ../
+
 sbatch -N ${NNODES} satori_job.sh
