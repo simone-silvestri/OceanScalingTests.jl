@@ -4,7 +4,7 @@ using Oceananigans.BoundaryConditions
 using Oceananigans.Utils: launch!
 using Oceananigans.Architectures
 using Oceananigans.Architectures: architecture
-using Oceananigans.Distributed
+using Oceananigans.DistributedComputations
 using Oceananigans.Grids: node
 using Oceananigans.BoundaryConditions
 using Oceananigans.BuoyancyModels: buoyancy_perturbationᶜᶜᶜ

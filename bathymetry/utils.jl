@@ -29,14 +29,14 @@ end
 
 @kernel function _interpolate_one_level!(a, x, y, field, ::LinearInterpolation)
     i, j = @index(Global, NTuple)
-    @inbounds a[i, j] = interpolate(field, x[i], y[j], 1)
+    @inbounds a[i, j] = interpolate(field, x[i], y[j], 0.0)
 end
 
 function interpolate_one_level(old_array, old_grid, new_grid; interpolation_method = LinearInterpolation())
-    old_field = Field{Center, Center, Nothing}(old_grid)
+    old_field = CenterField(old_grid)
     set!(old_field, old_array)
     fill_halo_regions!(old_field)
-    
+
     new_array = zeros(size(new_grid, 1), size(new_grid, 2))
 
     xnew = xnodes(new_grid, Center(), Center(), Center())
@@ -85,8 +85,8 @@ function interpolate_bathymetry_in_passes(old_bathymetry, Nxₒ, Nyₒ, Nxₙ, N
             oldlat = latitude
             oldlon = longitude
         end
-        old_grid = RectilinearGrid(size = (nxₒ, nyₒ), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), topology = (Periodic, Bounded, Flat))
-        new_grid = RectilinearGrid(size = (nx,  ny ), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), topology = (Periodic, Bounded, Flat))
+	old_grid = RectilinearGrid(size = (nxₒ, nyₒ, 1), y = (  oldlat[1],   oldlat[2]), x = (   oldlon[1],    oldlon[2]), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
+	new_grid = RectilinearGrid(size = (nx,  ny , 1), y = (latitude[1], latitude[2]), x = (longitude[1], longitude[2]), z = (-1, 1), topology = (Periodic, Bounded, Bounded))
     
         @show nxₒ, nyₒ, nx, ny, pass
         array = interpolate_one_level(array_full, old_grid, new_grid; interpolation_method)

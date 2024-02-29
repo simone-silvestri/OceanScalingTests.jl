@@ -121,8 +121,14 @@ function compress_surface_fields(full_size, ranks, folder = "../"; suffix = "", 
     Nz = 1
 
     fields_data = Dict()
-
-    times   = keys(jldopen(folder * "RealisticOcean_fields_0.jld2")["timeseries/t"])
+    times = keys(jldopen(folder * "RealisticOcean_fields_0.jld2")["timeseries/t"])
+    for r in 1:ranks-1
+        ttmp = keys(jldopen(folder * "RealisticOcean_fields_$(r).jld2")["timeseries/t"])
+        if length(ttmp) < length(times)
+            times = ttmp
+        end
+    end
+    
     iranges = check_ranges(folder, ranks; H, fields = true, time = times[1])
     Nt = length(times)
 

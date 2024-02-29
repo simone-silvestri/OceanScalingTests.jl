@@ -18,8 +18,6 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
                             ::Val{balance}, ::Val{experiment}; Bottom = GridFittedBottom) where {balance, experiment}
 
     Nx, Ny, Nz = N
-    Nx = Nx ÷ arch.ranks[1]
-    Ny = Ny ÷ arch.ranks[2]
 
     @show underlying_grid = LatitudeLongitudeGrid(arch, precision;
                                 size = (Nx, Ny, Nz),
@@ -59,6 +57,10 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
     # so for a small number of GPUs we are limited in the load balancing
     redistribute_size_to_fulfill_memory_limitation!(local_Nx, 600)
     child_arch = child_architecture(arch)
+
+    synchronized_communication = arch isa SynchronizedDistributed ? true : false
+
+    arch = Distributed(child_arch; partition = Partition(Sizes(local_Nx...)), synchronized_communication)
 
     zonal_rank = arch.local_index[1]
     arch = Distributed(child_arch; partition = Partition(x = Sizes(local_Nx...)))

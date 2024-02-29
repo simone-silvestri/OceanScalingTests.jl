@@ -20,7 +20,8 @@ function barotropic_substeps(Δt, grid;
 end
 
 substeps(free_surface) = length(free_surface.settings.substepping.averaging_weights)
-# At the moment the simulation does not run for TEOS10 with the DoubleDrake initialization (srt(negative number))
+
+# At the moment the simulation does not run for TEOS10 with the DoubleDrake initialization (sqrt(negative number))
 equation_of_state(::Val{E},            precision) where E = TEOS10EquationOfState(precision)
 equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfState(precision)
 
@@ -28,14 +29,23 @@ experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
 
 using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConserving
 
+<<<<<<< HEAD
 previous_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
                                                                 vertical_scheme = WENO(grid),
                                                              ke_gradient_scheme = EnergyConserving(precision),
                                                                       upwinding = CrossAndSelfUpwinding()) 
 
+=======
+>>>>>>> bb5040435102fe1395873702acd36b5e600c7b36
 best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
                                                             vertical_scheme = Centered(),
 							  divergence_scheme = WENO())
+
+
+compromise_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision),
+                                                                  vertical_scheme = WENO(grid),
+                                                               ke_gradient_scheme = EnergyConservingScheme(precision),
+                                                                        upwinding = CrossAndSelfUpwinding()) 
 
 simple_momentum_advection(grid, precision) = VectorInvariant()
 
@@ -86,7 +96,6 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
 				 boundary_layer_parameterization = RiBasedVerticalDiffusivity() 
                                  )
 
-    topo = (Periodic, Bounded, Bounded)
     arch = Distributed(child_arch; partition = Partition(ranks...))
 
     min_Δt, max_Δt = Δt isa Number ? (Δt, Δt) : Δt
@@ -183,8 +192,8 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         v = sim.model.velocities.v
         w = sim.model.velocities.w
         η = sim.model.free_surface.η
-	T = sim.model.tracers.T
-	S = sim.model.tracers.S
+	    T = sim.model.tracers.T
+	    S = sim.model.tracers.S
 
         rk = sim.model.grid.architecture.local_rank
 
