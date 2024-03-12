@@ -14,8 +14,8 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 exec \$*
 EoF_s
 chmod +x launch.sh
-
-if $PROFILE; then
+ 
+if test $PROFILE == 1; then
    NSYS="nsys profile --trace=nvtx,cuda,mpi --output=${COMMON}/report_N${SLURM_JOB_NUM_NODES}_R${RESOLUTION}_${PRECISION}"
 fi
 

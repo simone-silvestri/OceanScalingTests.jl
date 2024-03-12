@@ -33,7 +33,7 @@ export FINALMONTH=1
 export REPEATYEAR=true
 
 # Restart from interpolated fields ? "" : "numer_of_iteration_to_restart_from"
-export RESTART=""
+export RESTART="565011"
 
 # Shall we regenerate fluxes? Shall we regenerate initial conditions?
 export REGENERATEFLUXES=0

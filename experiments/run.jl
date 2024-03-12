@@ -38,6 +38,8 @@ loadbalance    = parse(Bool, get(ENV, "LOADBALANCE", "0"))
 precision      = eval(Symbol(get(ENV, "PRECISION", "Float64")))
 output_dir     = get(ENV, "OUTPUTDIR", "./")
 
+@show experiment
+
 final_year  = parse(Int, get(ENV, "FINALYEAR",  "0"))
 final_month = parse(Int, get(ENV, "FINALMONTH", "12"))
 
@@ -50,7 +52,7 @@ if rank == 0
 end
 
 simulation = OceanScalingTests.scaling_test_simulation(resolution, ranks, (min_Δt, max_Δt), stop_time; Nz, experiment, restart,
-						       profile, with_fluxes, with_restoring, loadbalance, precision)
+						       profile, with_fluxes, with_restoring, loadbalance, precision, child_arch = GPU())
 
 if !isnothing(simulation)
     @info "type of dt :" typeof(simulation.Δt)

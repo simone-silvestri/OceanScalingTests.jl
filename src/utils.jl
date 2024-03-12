@@ -29,12 +29,12 @@ function realistic_ocean_stop_time(final_year, final_month = 12)
     return simulation_days * days 
 end
 
-function check_ranges(folder, ranks; H = 7, fields = false, time = 0, iteration = 0)
+function check_ranges(folder, ranks; H = 7, fields = false, time = 0, iteration = 0, prefix = "RealisticOcean_checkpoint_")
     Nx = Vector(undef, ranks)
     iranges = Vector(undef, ranks)
     for rank in 0:ranks - 1
-        var = fields ? jldopen(folder * "RealisticOcean_fields_$(rank).jld2")["timeseries/u/"*string(time)][H+1:end-H, H+1:end-H, 1] :
-                       jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["u/data"][H+1:end-H, H+1:end-H, H+1:end-H] 
+        var = fields ? jldopen(folder * prefix * "$(rank).jld2")["timeseries/u/"*string(time)][H+1:end-H, H+1:end-H, 1] :
+                       jldopen(folder * prefix * "$(rank)_iteration$(iteration).jld2")["u/data"][H+1:end-H, H+1:end-H, H+1:end-H] 
         Nx[rank+1] = size(var, 1)
     end
     iranges[1] = UnitRange(1, Nx[1])
@@ -45,7 +45,8 @@ function check_ranges(folder, ranks; H = 7, fields = false, time = 0, iteration 
     return iranges
 end
 
-function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5, 
+function compress_restart_file(full_size, ranks, iteration, folder = "../"; Depth = 5244.5,
+		               prefix = "RealisticOcean_checkpoint_",
                                bathymetry = jldopen("data/bathymetry.jld2")["bathymetry"], H = 7)
 
     Nx, Ny, Nz = full_size
@@ -62,9 +63,12 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
     fields_data = Dict()
     fields_data[:underlying_grid] = full_grid
     fields_data[:bathymetry]      = bathymetry
-    fields_data[:clock] = jldopen(folder * "RealisticOcean_checkpoint_0_iteration$(iteration).jld2")["clock"]
+    fields_data[:clock] = jldopen(folder * prefix * "0_iteration$(iteration).jld2")["clock"]
 
-    iranges = check_ranges(folder, ranks; H, iteration)
+    iranges = check_ranges(folder, ranks; H, iteration, prefix)
+
+    tmp = jldopen(folder * prefix * "0_iteration$(iteration).jld2")["u/data"]
+    
 
     @info "starting the compression"
     for var in (:u, :w, :v, :T, :S)
@@ -79,7 +83,10 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
         for rank in 0:ranks-1
             @info "reading rank $rank"
             irange = iranges[rank+1]
-            compressed_data[irange, :, :] .= jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")[string(var) * "/data"][H+1:end-H, H+1:end-H, H+1:end-H]
+	    @info size(compressed_data[irange, :, :])
+            tmp = jldopen(folder * prefix * "$(rank)_iteration$(iteration).jld2")[string(var) * "/data"][H+1:end-H, H+1:end-H, H+1:end-H]
+	    @info size(tmp)
+	    compressed_data[irange, :, :] .= tmp 
         end
 
         fields_data[var] = compressed_data
@@ -90,7 +97,7 @@ function compress_restart_file(full_size, ranks, iteration, folder = "../"; Dept
         @info "reading rank $rank"
 
         irange = iranges[rank+1]
-        data = jldopen(folder * "RealisticOcean_checkpoint_$(rank)_iteration$(iteration).jld2")["η/data"]
+        data = jldopen(folder * prefix * "$(rank)_iteration$(iteration).jld2")["η/data"]
         Hx = calc_free_surface_halo(irange, data)
         data = data[Hx+1:end-Hx, H+1:end-H, :]
         compressed_η[irange, :, :] .= Float32.(data)
@@ -111,15 +118,15 @@ function calc_free_surface_halo(irange, data)
     return Int((Nx - nx) ÷ 2)
 end
 
-function compress_surface_fields(full_size, ranks, folder = "../"; suffix = "", H = 7)
+function compress_surface_fields(full_size, ranks, folder = "../"; suffix = "", H = 7, prefix = "RealisticOcean_fields_")
 
     Nx, Ny, Nz = full_size
     Nz = 1
 
     fields_data = Dict()
 
-    times   = keys(jldopen(folder * "RealisticOcean_fields_0.jld2")["timeseries/t"])
-    iranges = check_ranges(folder, ranks; H, fields = true, time = times[1])
+    times   = keys(jldopen(folder * prefix * "0.jld2")["timeseries/t"])
+    iranges = check_ranges(folder, ranks; H, fields = true, time = times[1], prefix)
     Nt = length(times)
 
     @info "starting the compression"
@@ -136,7 +143,7 @@ function compress_surface_fields(full_size, ranks, folder = "../"; suffix = "", 
             @info "reading rank $rank"
             irange = iranges[rank+1]
             for (i, t) in enumerate(times)
-                compressed_data[irange, :, i] .= jldopen(folder * "RealisticOcean_fields_$(rank).jld2")["timeseries/"*string(var)*"/"*t][H+1:end-H, H+1:end-H, 1]
+                compressed_data[irange, :, i] .= jldopen(folder * prefix * "$(rank).jld2")["timeseries/"*string(var)*"/"*t][H+1:end-H, H+1:end-H, 1]
             end
         end
 
@@ -152,10 +159,11 @@ end
 
 const regex = r"^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$";
 
-function compress_all_restarts(full_size, ranks, dir)
+function compress_all_restarts(full_size, ranks, dir; prefix = "RealisticOcean_checkpoint_")
     files = readdir(dir)
-    files = filter(x -> length(x) > 30, files)
-    files = filter(x -> x[1:26] == "RealisticOcean_checkpoint_", files)
+    len   = length(prefix) - 1
+    files = filter(x -> length(x) > len, files)
+    files = filter(x -> x[1:len+1] == prefix, files)
     iterations = Int[]
     for file in files
         file   = file[1:end-5]
@@ -172,11 +180,11 @@ function compress_all_restarts(full_size, ranks, dir)
     iterations = sort(iterations)
     for iter in iterations
         @info "compressing iteration $iter"
-        compress_restart_file(full_size, ranks, iter, dir; bathymetry = nothing)
+        compress_restart_file(full_size, ranks, iter, dir; prefix, bathymetry = nothing)
         @info "removing iteration $iter"
 
         for rank in 0:ranks-1
-            to_remove = "RealisticOcean_checkpoint_$(rank)_iteration$(iter).jld2"
+            to_remove = prefix * "$(rank)_iteration$(iter).jld2"
             cmd = `rm $to_remove`
             run(cmd)
         end

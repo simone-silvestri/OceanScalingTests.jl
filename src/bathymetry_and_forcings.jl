@@ -162,29 +162,30 @@ end
 @inline function flux_from_interpolated_array(i, j, grid, clock, fields, p)
     time_in_days = clock.time / 1days
     n  = mod(time_in_days, 5) + 1
-    n₁ = Int(floor(n))
-    n₂ = Int(n₁ + 1)    
-
-    return p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
+    n₁ = floor(Int, n)
+    n₂ = n₁ + 1   
+    @inbounds flux = p[i, j, n₁] * (n₂ - n) + p[i, j, n₂] * (n - n₁)
+    return flux
 end
 
 @inline function _flux_and_restoring(i, j, grid, clock, field, F, R, λ)
     @inbounds begin
-        surf_val = field[i, j, grid.Nz]
+	surf_val = field[i, j, grid.Nz]
         
         time_in_days = clock.time / 1days
         n  = mod(time_in_days, 5) + 1
-        n₁ = Int(floor(n))
-        n₂ = Int(n₁ + 1)    
+        n₁ = floor(Int, n)
+        n₂ = n₁ + 1    
         flux = F[i, j, n₁] * (n₂ - n) + F[i, j, n₂] * (n - n₁)
 
         n  = mod(time_in_days, 15) ÷ 3 + 1
-        n₁ = Int(floor(n))
-        n₂ = Int(n₁ + 1)    
+        n₁ = floor(Int, n)
+        n₂ = n₁ + 1 
         restoring_val = R[i, j, n₁] * (n₂ - n) + R[i, j, n₂] * (n - n₁)
 
         restoring = λ * (surf_val - restoring_val)
     end
+
     return flux + restoring
 end
 

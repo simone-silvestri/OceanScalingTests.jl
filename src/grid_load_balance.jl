@@ -1,6 +1,7 @@
 using KernelAbstractions: @kernel, @index
 using KernelAbstractions.Extras.LoopInfo: @unroll
 using Oceananigans.ImmersedBoundaries: immersed_cell
+using Oceananigans.DistributedComputations: Sizes
 
 """
     function load_balanced_grid(arch, precision, N, latitude, z_faces, 
@@ -57,7 +58,7 @@ function load_balanced_grid(arch, precision, N, latitude, z_faces, resolution,
 
     # We cannot have Nx > 650 if Nranks = 32 otherwise we incur in memory limitations,
     # so for a small number of GPUs we are limited in the load balancing
-    redistribute_size_to_fulfill_memory_limitation!(local_Nx, 1150)
+    redistribute_size_to_fulfill_memory_limitation!(local_Nx, 650)
 
     arch = Distributed(child_arch, partition = Partition(x = Sizes(local_Nx...)))
     zonal_rank = arch.local_index[1]

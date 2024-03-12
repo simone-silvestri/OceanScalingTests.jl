@@ -19,7 +19,7 @@ using Oceananigans.TurbulenceClosures:
         isopycnal_rotation_tensor_yz_cfc
 
 import Oceananigans.TurbulenceClosures:
-        calculate_diffusivities!,
+        compute_diffusivities!,
         DiffusivityFields,
         viscosity, 
         diffusivity,
@@ -134,7 +134,7 @@ end
     end
 end
 
-function calculate_diffusivities!(diffusivity_fields, closure::QGLeith, model; parameters = :xyz)
+function compute_diffusivities!(diffusivity_fields, closure::QGLeith, model; parameters = :xyz)
     arch = model.architecture
     grid = model.grid
     velocities = model.velocities

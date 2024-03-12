@@ -20,6 +20,7 @@ using Oceananigans.Operators: Δzᵃᵃᶜ
 using Oceananigans: prognostic_fields
 using MPI
 
+include("correct_oceananigans.jl")
 include("bathymetry_and_forcings.jl")
 include("boundary_and_initial_conditions.jl")
 include("grid_load_balance.jl")

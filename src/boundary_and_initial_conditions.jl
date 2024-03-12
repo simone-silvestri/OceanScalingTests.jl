@@ -1,9 +1,9 @@
 using Oceananigans.Units
 using Oceananigans.Utils
 using Oceananigans.Grids: halo_size
-using Oceananigans.Architectures: arch_array, architecture, device
-using Oceananigans.DistributedComputations: partition_global_array
-using OffsetArrays
+using Oceananigans.BoundaryConditions
+using Oceananigans.Architectures: arch_array, architecture, device, cpu_architecture
+using Oceananigans.DistributedComputations: partition_global_array, concatenate_local_sizes
 using KernelAbstractions: @index, @kernel
 
 initialize_model!(model, ::Val{:Quiescent}; kw...)   = nothing
@@ -33,13 +33,15 @@ function initialize_model!(model, ::Val{:RealisticOcean}; restart = "")
 
     rx = grid.architecture.local_rank
 
+    partition_size = (size(grid, 1), size(grid, 2), 1)
+
     for k in 1:size(grid, 3)
        if rx == 1
           @info "loading level $k"
        end
 
-       T_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_T_at_k$(k).jld2")["T"][:, :, 1], size(grid)[[1, 2]]))
-       S_init[:, :, k] .= Array(partition_global_array(arch, jldopen("data/initial_S_at_k$(k).jld2")["S"][:, :, 1], size(grid)[[1, 2]]))
+       T_init[:, :, k:k] .= Array(partition_global_array(arch, jldopen("data/initial_T_at_k$(k).jld2")["T"][:, :, 1:1], partition_size))
+       S_init[:, :, k:k] .= Array(partition_global_array(arch, jldopen("data/initial_S_at_k$(k).jld2")["S"][:, :, 1:1], partition_size))
     end
 
     set!(model, T = T_init, S = S_init)
@@ -84,31 +86,38 @@ end
 
 function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = true, with_restoring = true)
 
-    arch = architecture(grid)
+    arch  = architecture(grid)
+    Nx, Ny, Nz = map(sum, concatenate_local_sizes(size(grid), arch))
+
+    fake_grid = RectilinearGrid(arch, size = (Nx, Ny, 6), 
+				halo = (7, 7, 1), 
+				topology = (Periodic, Bounded, Bounded), 
+				extent = (1, 1, 1))
 
     Nx, Ny, _ = size(grid)
 
     if with_fluxes
-        τx = arch_array(arch, OffsetArray(zeros(eltype(grid), Nx+2, Ny,   6), (-1, 0, 0)))
-        τy = arch_array(arch, OffsetArray(zeros(eltype(grid), Nx+2, Ny+1, 6), (-1, 0, 0)))
-        Qs = arch_array(arch, OffsetArray(zeros(eltype(grid), Nx+2, Ny,   6), (-1, 0, 0)))
-        Fs = arch_array(arch, OffsetArray(zeros(eltype(grid), Nx+2, Ny,   6), (-1, 0, 0)))
+	τx =  XFaceField(fake_grid) 
+	τy =  YFaceField(fake_grid) 
+	Qs = CenterField(fake_grid)
+	Fs = CenterField(fake_grid)
         
         load_fluxes!(grid, τx, τy, Qs, Fs, 1)
         
         u_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τx)    
         v_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=τy)
-        if with_restoring
-            Tr = arch_array(arch, OffsetArray(zeros(eltype(grid), Nx+2, Ny, 6), (-1, 0, 0)))
-            Sr = arch_array(arch, OffsetArray(zeros(eltype(grid), Nx+2, Ny, 6), (-1, 0, 0)))
+       
+	if with_restoring
+	    Tr = CenterField(fake_grid) 
+            Sr = CenterField(fake_grid) 
 
             load_restoring!(grid, Tr, Sr, 1)
 
-            Δz = minimum_zspacing(grid)
+	    Δz = 3 # meters 
 
             # If temperature or salinity are outside the physical range, crank up restoring velocity
-            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=Δz/30days))
-            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=Δz/60days))
+            T_top_bc = FluxBoundaryCondition(flux_and_restoring_T, discrete_form=true, parameters=(; Qs, Tr, λ=Δz/10days))
+            S_top_bc = FluxBoundaryCondition(flux_and_restoring_S, discrete_form=true, parameters=(; Fs, Sr, λ=Δz/20days))
         else
             T_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Qs)
             S_top_bc = FluxBoundaryCondition(flux_from_interpolated_array, discrete_form=true, parameters=Fs)
@@ -120,7 +129,7 @@ function set_boundary_conditions(::Val{:RealisticOcean}, grid; with_fluxes = tru
         S_top_bc = FluxBoundaryCondition(zero(grid))
     end
 
-    μ = eltype(grid)(0.001) # Quadratic drag coefficient (ms⁻¹)
+    μ = eltype(grid)(0.003) # Quadratic drag coefficient (ms⁻¹)
     u_bot_bc = FluxBoundaryCondition(u_quadratic_bottom_drag, discrete_form=true, parameters=μ)
     v_bot_bc = FluxBoundaryCondition(v_quadratic_bottom_drag, discrete_form=true, parameters=μ)
 
@@ -140,6 +149,7 @@ end
 
 function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     arch = architecture(grid)
+    cpu_arch = cpu_architecture(arch)
     rx   = arch.local_rank
     nx, ny, _ = size(grid) 
 
@@ -152,44 +162,24 @@ function load_fluxes!(grid, τx, τy, Qs, Fs, filenum)
     # Garbage collect!!
     GC.gc()
 
-    τxtmp = partition_global_array(arch, file["τx"], (nx, ny,   6))
-    τytmp = partition_global_array(arch, file["τy"], (nx, ny+1, 6))
-    Qstmp = partition_global_array(arch, file["Qs"], (nx, ny,   6))
-    Fstmp = partition_global_array(arch, file["Fs"], (nx, ny,   6))
+    τxtmp = partition_global_array(cpu_arch, file["τx"], (nx, ny,   6))
+    τytmp = partition_global_array(cpu_arch, file["τy"], (nx, ny+1, 6))
+    Qstmp = partition_global_array(cpu_arch, file["Qs"], (nx, ny,   6))
+    Fstmp = partition_global_array(cpu_arch, file["Fs"], (nx, ny,   6))
 
-    _copy_flux_values(device(arch), (16, 16), (nx, ny, 6))(τx, τy, Qs, Fs, τxtmp, τytmp, Qstmp, Fstmp, nx, ny)
+    set!(τx, τxtmp)
+    set!(τy, τytmp)
+    set!(Qs, Qstmp)
+    set!(Fs, Fstmp)
 
+    fill_halo_regions!((τx, τy, Qs, Fs))
+    
     return nothing
-end
-
-@kernel function _copy_flux_values!(τx, τy, Qs, Fs, τxtmp, τytmp, Qstmp, Fstmp, Nx, Ny)
-    i, j, k = @index(Global, NTuple)
-
-    @inbounds begin
-        τx[i, j, k] = τxtmp[i, j, k]
-        τy[i, j, k] = τytmp[i, j, k]
-        Qs[i, j, k] = Qstmp[i, j, k]
-        Fs[i, j, k] = Fstmp[i, j, k]
-    end
-
-    if j == 1
-        τy[i, Ny+1, k] = τytmp[i, Ny+1, k]
-    end
-
-    if i == 1
-        τx[0, j, k]    = τxtmp[Nx, j, k]
-        τx[Nx+1, j, k] = τxtmp[1, j, k]
-        τy[0, j, k]    = τytmp[Nx, j, k]
-        τy[Nx+1, j, k] = τytmp[1, j, k]
-        Qs[0, j, k]    = Qstmp[Nx, j, k]
-        Qs[Nx+1, j, k] = Qstmp[1, j, k]
-        Fs[0, j, k]    = Fstmp[Nx, j, k]
-        Fs[Nx+1, j, k] = Fstmp[1, j, k]
-    end
 end
 
 function load_restoring!(grid, Tr, Sr, filenum)
     arch = architecture(grid)
+    cpu_arch = cpu_architecture(arch)
     rx   = arch.local_rank
     nx, ny, _ = size(grid) 
 
@@ -202,28 +192,15 @@ function load_restoring!(grid, Tr, Sr, filenum)
     # Garbage collect!!
     GC.gc()
 
-    Trtmp = partition_global_array(arch, file["Tr"], (nx, ny, 6))
-    Srtmp = partition_global_array(arch, file["Sr"], (nx, ny, 6))
+    Trtmp = partition_global_array(cpu_arch, file["Tr"], (nx, ny, 6))
+    Srtmp = partition_global_array(cpu_arch, file["Sr"], (nx, ny, 6))
+    
+    set!(Tr, Trtmp)
+    set!(Sr, Srtmp)
 
-    _copy_restoring_values(device(arch), (16, 16), (nx, ny, 6))(Tr, Sr, Trtmp, Srtmp, nx, ny)
+    fill_halo_regions!((Tr, Sr))
 
     return nothing
-end
-
-@kernel function _copy_restoring_values(Tr, Sr, Trtmp, Srtmp, nx, ny)
-    i, j, k = @index(Global, NTuple)
-
-    @inbounds begin
-        Tr[i, j, k] = Trtmp[i, j, k]
-        Sr[i, j, k] = Srtmp[i, j, k]
-    end
-
-    if i == 1
-        Tr[0, j, k]    = Trtmp[Nx, j, k]
-        Tr[Nx+1, j, k] = Trtmp[1, j, k]
-        Sr[0, j, k]    = Srtmp[Nx, j, k]
-        Sr[Nx+1, j, k] = Srtmp[1, j, k]
-    end
 end
 
 # Update fluxes through a Callback every 5days.

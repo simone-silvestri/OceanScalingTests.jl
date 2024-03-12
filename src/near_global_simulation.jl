@@ -6,13 +6,14 @@ using Oceananigans.TurbulenceClosures
 using Oceananigans.TurbulenceClosures.CATKEVerticalDiffusivities: CATKEVerticalDiffusivity
 using SeawaterPolynomials: TEOS10EquationOfState
 using JLD2
+using CUDA: @allowscalar
 
 # Calculate barotropic substeps based on barotropic CFL number and wave speed
 function barotropic_substeps(Δt, grid; 
                              g = Oceananigans.BuoyancyModels.g_Earth, 
                              CFL = 0.75)
     wave_speed = sqrt(g * grid.Lz)
-    local_Δ    = 1 / sqrt(1 / minimum_xspacing(grid)^2 + 1 / minimum_yspacing(grid)^2)
+    local_Δ    = @allowscalar 1 / sqrt(1 / grid.Δxᶜᶜᵃ[1]^2 + 1 / grid.Δyᶠᶜᵃ^2)
     global_Δ   = MPI.Allreduce(local_Δ, min, grid.architecture.communicator)
 
     return max(Int(ceil(2 * Δt / (CFL / wave_speed * global_Δ))), 10)
@@ -24,8 +25,6 @@ equation_of_state(::Val{E},            precision) where E = TEOS10EquationOfStat
 equation_of_state(::Val{:DoubleDrake}, precision)         = LinearEquationOfState(precision)
 
 experiment_depth(E) = E == :RealisticOcean ? 5244.5 : 3000
-
-using Oceananigans.Advection: CrossAndSelfUpwinding, EnergyConserving
 
 best_momentum_advection(grid, precision) = VectorInvariant(vorticity_scheme = WENO(precision; order = 9),
 							    vertical_scheme = Centered(),
@@ -67,15 +66,15 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     ##### Physics setup and numerical methods
     #####
 
-    νz = 5e-4
-    κz = 3e-5        
+    νz = 1e-4
+    κz = 1e-5        
 
     vertical_diffusivity = VerticalScalarDiffusivity(VerticallyImplicitTimeDiscretization(), precision; ν=νz, κ=κz)
     
-    tracer_advection   = Oceananigans.Advection.TracerAdvection(;
-                                x = WENO(precision; order = 7),
-                                y = WENO(precision; order = 7),
-                                z = Centered(precision))
+    tracer_advection   = Oceananigans.Advection.TracerAdvection(
+                                WENO(precision; order = 7),
+                                WENO(precision; order = 7),
+                                Centered(precision))
     
     momentum_advection = best_momentum_advection(grid, precision)
 
@@ -119,10 +118,10 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     #####
 
     # If we are profiling launch only 100 time steps and mark each one with NVTX
-    if profile
-        profiled_time_steps!(model, max_Δt, resolution)
-        return nothing
-    end
+    # if profile
+    #     profiled_time_steps!(model, max_Δt, resolution)
+    #     return nothing
+    # end
    
     initialize_model!(model, Val(experiment); restart)
     @info "model initialized"
@@ -138,18 +137,18 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
     function progress(sim)
         wall_time = (time_ns() - start_time[1]) * 1e-9
 
-        u = sim.model.velocities.u
-        v = sim.model.velocities.v
-        w = sim.model.velocities.w
-        η = sim.model.free_surface.η
-	T = sim.model.tracers.T
-	S = sim.model.tracers.S
+	u = interior(sim.model.velocities.u)
+	v = interior(sim.model.velocities.v)
+	w = interior(sim.model.velocities.w)
+	η = interior(sim.model.free_surface.η)
+	T = interior(sim.model.tracers.T)
+	S = interior(sim.model.tracers.S)
 
         rk = sim.model.grid.architecture.local_rank
 
-	    @info @sprintf("R: %02d, T: % 12s, it: %d, Δt: %.2f, vels: %.2e %.2e %.2e, η: %.2e, trac: %.2e %.2e, wt : %s", 
+	    @info @sprintf("R: %02d, T: % 12s, it: %d, Δt: %.2f, vels: %.2e %.2e %.2e %.2e, trac: %.2e %.2e, wt : %s", 
                         rk, prettytime(sim.model.clock.time), sim.model.clock.iteration, sim.Δt, 
-                        maximum(abs, u),  maximum(abs, v), maximum(abs, w), maximum(abs, η), maximum(abs, T), maximum(abs, S),
+                        maximum(u),  maximum(v), maximum(w), minimum(w), maximum(T), maximum(S),
                         prettytime(wall_time))
 
         start_time[1] = time_ns()
@@ -157,7 +156,7 @@ function scaling_test_simulation(resolution, ranks, Δt, stop_time;
         return nothing
     end
 
-    simulation.callbacks[:progress] = Callback(progress, IterationInterval(100))
+    simulation.callbacks[:progress] = Callback(progress, IterationInterval(20))
     wizard = TimeStepWizard(cfl=0.35; max_change=1.1, max_Δt, min_Δt)
     simulation.callbacks[:wizard] = Callback(wizard, IterationInterval(10))
     

@@ -39,33 +39,33 @@ end
 
 set_outputs!(simulation, ::Val{:Quiescent}) = nothing
 
-function set!(model, filepath::AbstractString)
-
-    jldopen(filepath, "r") do file
-
-        # Do NOT validate the grid!
-        model_fields = prognostic_fields(model)
-
-        for name in (:u, :v, :T, :S)
-            if string(name) ∈ keys(file) # Test if variable exist in checkpoint.
-                model_field = model_fields[name]
-                parent_data = file["$name/data"] #  Allow different halo size by loading only the interior
-        		copyto!(model_field.data.parent, parent_data)
-            end
-        end
-
-        load_free_surface!(model_fields.η, size(model_fields.T), file)
-        set_time_stepper!(model.timestepper, file, model_fields)
-
-        checkpointed_clock = file["clock"]
-
-        # Update model clock
-        model.clock.iteration = checkpointed_clock.iteration
-        model.clock.time = checkpointed_clock.time
-    end
-
-    return nothing
-end
+##function set!(model, filepath::AbstractString)
+##
+##    jldopen(filepath, "r") do file
+##
+##        # Do NOT validate the grid!
+##        model_fields = prognostic_fields(model)
+##
+##        for name in (:u, :v, :T, :S)
+##            if string(name) ∈ keys(file) # Test if variable exist in checkpoint.
+##                model_field = model_fields[name]
+##                parent_data = file["$name/data"] #  Allow different halo size by loading only the interior
+##        		copyto!(model_field.data.parent, parent_data)
+##            end
+##        end
+##
+##        load_free_surface!(model_fields.η, size(model_fields.T), file)
+##        set_time_stepper!(model.timestepper, file, model_fields)
+##
+##        checkpointed_clock = file["clock"]
+##
+##        # Update model clock
+##        model.clock.iteration = checkpointed_clock.iteration
+##        model.clock.time = checkpointed_clock.time
+##    end
+##
+##    return nothing
+##end
 
 function load_free_surface!(η, N, file)
     Sη = size(file["η/data"])[1:2]
@@ -79,24 +79,24 @@ function load_free_surface!(η, N, file)
     return nothing
 end
 
-function set_time_stepper_tendencies!(timestepper, file, model_fields)
-    for name in (:u, :v, :T, :S)
-        if string(name) ∈ keys(file["timestepper/Gⁿ"]) # Test if variable tendencies exist in checkpoint
-            # Tendency "n"
-            parent_data = file["timestepper/Gⁿ/$name/data"]
-
-            tendencyⁿ_field = timestepper.Gⁿ[name]
-            copyto!(tendencyⁿ_field.data.parent, parent_data)
-
-            # Tendency "n-1"
-            parent_data = file["timestepper/G⁻/$name/data"]
-
-            tendency⁻_field = timestepper.G⁻[name]
-            copyto!(tendency⁻_field.data.parent, parent_data)
-        else
-            @warn "Tendencies for $name do not exist in checkpoint and could not be restored."
-        end
-    end
-
-    return nothing
-end
+##function set_time_stepper_tendencies!(timestepper, file, model_fields)
+##    for name in (:u, :v, :T, :S)
+##        if string(name) ∈ keys(file["timestepper/Gⁿ"]) # Test if variable tendencies exist in checkpoint
+##            # Tendency "n"
+##            parent_data = file["timestepper/Gⁿ/$name/data"]
+##
+##            tendencyⁿ_field = timestepper.Gⁿ[name]
+##            copyto!(tendencyⁿ_field.data.parent, parent_data)
+##
+##            # Tendency "n-1"
+##            parent_data = file["timestepper/G⁻/$name/data"]
+##
+##            tendency⁻_field = timestepper.G⁻[name]
+##            copyto!(tendency⁻_field.data.parent, parent_data)
+##        else
+##            @warn "Tendencies for $name do not exist in checkpoint and could not be restored."
+##        end
+##    end
+##
+##    return nothing
+##end

@@ -11,10 +11,10 @@ export OMPI_MCA_btl_openib_allow_ib=true
 
 # Julia specific enviromental variables
 export COMMON="/nobackup/users/ssilvest/perlmutter-test"
-export JULIA_DEPOT_PATH=":${COMMON}/depot"
-export JULIA_LOAD_PATH="${JULIA_LOAD_PATH}:$(pwd)/satori"
+export JULIA="${COMMON}/julia/julia"
+
 export JULIA_CUDA_MEMORY_POOL=none
-export JULIA=julia
+export JULIA_DEPOT_PATH="${COMMON}/depot"
 
 # Profile specific variable
 export JULIA_NVTX_CALLBACKS=gc

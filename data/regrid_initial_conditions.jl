@@ -32,7 +32,7 @@ end
 
 function regrid_initial_conditions(resolution, Nz; arch = GPU(), 
                                    regrid_in_z = true, regrid_in_x = true, z_faces = ECCO_z_faces(),
-				                   filepath = datadep"ecco_initial_conditions/ecco-initial-conditions-19950101.jld2") 
+				      filepath = datadep"ecco_initial_conditions/ecco-initial-conditions-19950101.jld2") 
 
     file_init = jldopen(filepath)
 
